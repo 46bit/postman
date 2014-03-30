@@ -68,7 +68,8 @@ int main(int argc, char *argv[], char **envp)
 		picked_card->player = current_player;
 		if (current_player->hand[0] == NULL) {
 			current_player->hand[0] = picked_card;
-		} else {
+		} else
+		{
 			current_player->hand[1] = picked_card;
 		}
 
