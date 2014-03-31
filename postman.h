@@ -7,7 +7,17 @@
 #include <sys/types.h>
 #include <signal.h>
 
+struct pipexec {
+	char *program;
+	pid_t pid;
+	FILE *stdin;
+	pid_t stdin_pipe[2];
+	FILE *stdout;
+	pid_t stdout_pipe[2];
+};
+
 struct player {
+	int index;
 	char *name;
 	char *program;
 	struct card **hand;
@@ -29,6 +39,14 @@ struct card {
 
 int main(int argc, char *argv[], char **envp);
 
-int character_cards_init(int characters_length, struct character *characters, struct card **cards, struct player *players);
+int character_cards_init(int characters_length, struct character *characters, struct card **cards);
 
 struct card *choose_card(struct card *cards, int *cards_drawn, int cards_length);
+
+struct pipexec *new_pipexec(char *program);
+
+void player_draw(struct player *current_player, struct card *current_card);
+
+int player_move(struct player *current_player);
+
+int card_played(struct player *current_player, char *character_name);

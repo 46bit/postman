@@ -25,24 +25,26 @@ int main(int argc, char *argv[], char **envp)
 		{
 			if (has_been_drawn == 0)
 			{
-				char *item = malloc(strlen(play+5) * sizeof(char));
+				char *item = malloc(strlen(play+5) + 1);
 				strcpy(item, play+5);
 				hand[0] = item;
 				has_been_drawn++;
 				continue;
 			}
-			char *item = malloc(strlen(play+5) * sizeof(char));
+
+			char *item = malloc(strlen(play+5) + 1);
 			strcpy(item, play+5);
 			hand[1] = item;
-			int which = (rand() % 3) - 1;
+			int which = rand() % 2;
 
-			//fprintf(stderr, "play %s\n", hand[which]);
-			fflush(stderr);
 			printf("play %s\n", hand[which]);
 			fflush(stdout);
 			if (which == 0)
 			{
+				free(hand[0]);
 				hand[0] = hand[1];
+			} else {
+				free(hand[1]);
 			}
 			hand[1] = NULL;
 		}
