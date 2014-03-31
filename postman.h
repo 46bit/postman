@@ -41,12 +41,15 @@ int main(int argc, char *argv[], char **envp);
 
 int character_cards_init(int characters_length, struct character *characters, struct card **cards);
 
-struct card *choose_card(struct card *cards, int *cards_drawn, int cards_length);
+void players_init(int player_count, struct player *players, char **programs);
 
 struct pipexec *new_pipexec(char *program);
+
+struct card *choose_card(struct card *cards, int *cards_drawn, int cards_length);
 
 void player_draw(struct player *current_player, struct card *current_card);
 
 int player_move(struct player *current_player);
 
 int card_played(struct player *current_player, char *character_name);
+

@@ -26,31 +26,7 @@ int main(int argc, char *argv[], char **envp)
 	// Setup game players as provided in argv.
 	int i, player_count = argc - 1;
 	struct player *players = malloc(player_count * sizeof(struct player));
-	for (i = 0; i < player_count; i++)
-	{
-		// Fork off the player program then save pid/stdin/stdout for our use.
-		struct player *current_player = &players[i];
-		current_player->index = i;
-		current_player->program = argv[i + 1];
-		struct pipexec *p = new_pipexec(current_player->program);
-		current_player->pid = p->pid;
-		current_player->stdin = p->stdin;
-		current_player->stdout = p->stdout;
-		free(p);
-
-		// Finish player setup
-		current_player->hand = malloc(2 * sizeof(*current_player->hand));
-		current_player->hand[0] = current_player->hand[1] = NULL;
-
-		// Get name of player as it output on stdout.
-		char ai_name[31];
-		fgets(ai_name, 31, current_player->stdout);
-		strtok(ai_name, "\n");
-		players[i].name = malloc(strlen(ai_name) + 1);
-		strcpy(current_player->name, ai_name);
-
-		printf("Started player %s from %s\n", current_player->name, current_player->program);
-	}
+	players_init(player_count, players, argv+1);
 
 	// Play game until cards run out.
 	struct card *picked_card;
@@ -137,23 +113,34 @@ int character_cards_init(int characters_length, struct character *characters, st
 	return cards_length;
 }
 
-struct card *choose_card(struct card *cards, int *cards_drawn, int cards_length)
+void players_init(int player_count, struct player *players, char **programs)
 {
-	struct card *chosen_card = NULL;
-	if (*cards_drawn < cards_length)
+	int i;
+	for (i = 0; i < player_count; i++)
 	{
-		while (1)
-		{
-			int chosen_card_index = rand() % cards_length;
-			chosen_card = &(cards[chosen_card_index]);
-			if (chosen_card->player == NULL)
-			{
-				(*cards_drawn)++;
-				break;
-			}
-		}
+		// Fork off the player program then save pid/stdin/stdout for our use.
+		struct player *current_player = &players[i];
+		current_player->index = i;
+		current_player->program = programs[i];
+		struct pipexec *p = new_pipexec(current_player->program);
+		current_player->pid = p->pid;
+		current_player->stdin = p->stdin;
+		current_player->stdout = p->stdout;
+		free(p);
+
+		// Finish player setup
+		current_player->hand = malloc(2 * sizeof(*current_player->hand));
+		current_player->hand[0] = current_player->hand[1] = NULL;
+
+		// Get name of player as it output on stdout.
+		char ai_name[31];
+		fgets(ai_name, 31, current_player->stdout);
+		strtok(ai_name, "\n");
+		players[i].name = malloc(strlen(ai_name) + 1);
+		strcpy(current_player->name, ai_name);
+
+		printf("Started player %s from %s\n", current_player->name, current_player->program);
 	}
-	return chosen_card;
 }
 
 struct pipexec *new_pipexec(char *program)
@@ -177,6 +164,25 @@ struct pipexec *new_pipexec(char *program)
 	p->stdin = fdopen(stdin_pipe[1], "w");
 	p->stdout = fdopen(stdout_pipe[0], "r");
 	return p;
+}
+
+struct card *choose_card(struct card *cards, int *cards_drawn, int cards_length)
+{
+	struct card *chosen_card = NULL;
+	if (*cards_drawn < cards_length)
+	{
+		while (1)
+		{
+			int chosen_card_index = rand() % cards_length;
+			chosen_card = &(cards[chosen_card_index]);
+			if (chosen_card->player == NULL)
+			{
+				(*cards_drawn)++;
+				break;
+			}
+		}
+	}
+	return chosen_card;
 }
 
 void player_draw(struct player *current_player, struct card *current_card)
