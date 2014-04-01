@@ -87,7 +87,7 @@ int main(int argc, char *argv[], char **envp)
 	{
 		struct player *current_player = &players[i];
 		int current_score = current_player->hand[0]->character->score;
-		if (current_score > top_score)
+		if (current_player->playing && current_score > top_score)
 		{
 			top_score = current_score;
 			top_card = current_player->hand[0];
