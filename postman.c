@@ -36,6 +36,23 @@ int main(int argc, char *argv[], char **envp)
 	int current_player_index = 0, initial_cards_drawn = 0;
 	while ((picked_card = choose_card(cards, cards_drawn, cards_length)) != NULL)
 	{
+		// Check we have at least 2 players not out. End game if appropriate.
+		int p, active_players_count = 0;
+		for (p = 0; p < player_count; p++)
+		{
+			if (players[p].playing)
+			{
+				active_players_count++;
+			}
+		}
+		if (active_players_count < 2)
+		{
+			#if DEBUG==1
+				printf("\nEnd of game, only %d players remaining.\n", active_players_count);
+			#endif
+			break;
+		}
+
 		struct player *current_player = &players[current_player_index];
 		if (current_player->playing)
 		{
@@ -46,7 +63,7 @@ int main(int argc, char *argv[], char **envp)
 			{
 				// @TODO: player did an invalid move, forfeit the game.
 				printf("\nPlayer %s did an invalid move.\n", current_player->name);
-				return 1;
+				current_player->playing = 0;
 			}
 		} else {
 			#if DEBUG==1
