@@ -232,7 +232,10 @@ void player_draw(int player_count, struct player *players, struct player *curren
 	int p;
 	for (p = 0; p < player_count; p++)
 	{
-		fprintf(players[p].stdin, "player %d\n", current_player->index);
+		if (players[p].playing)
+		{
+			fprintf(players[p].stdin, "player %d\n", current_player->index);
+		}
 	}
 	fprintf(current_player->stdin, "draw %s\n", current_card->character->name);
 	fflush(current_player->stdin);
@@ -299,7 +302,10 @@ int player_move(struct player *current_player, int player_count, struct player *
 				int p;
 				for (p = 0; p < player_count; p++)
 				{
-					fprintf(players[p].stdin, "out %d %s\n", current_player->index, current_player->hand[0]->character->name);
+					if (players[p].playing)
+					{
+						fprintf(players[p].stdin, "out %d %s\n", current_player->index, current_player->hand[0]->character->name);
+					}
 				}
 				break;
 			case 7:
