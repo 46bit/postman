@@ -58,7 +58,7 @@ int main(int argc, char *argv[], char **envp)
 		{
 			cards_drawn++;
 
-			player_draw(current_player, picked_card);
+			player_draw(player_count, players, current_player, picked_card);
 			if (initial_cards_drawn && player_move(current_player, player_count, players, characters_count, characters) == -1)
 			{
 				// @TODO: player did an invalid move, forfeit the game.
@@ -95,7 +95,7 @@ int main(int argc, char *argv[], char **envp)
 
 		kill(players[i].pid, SIGTERM);
 	}
-	printf("Player %s won with a %s card.\n", top_card->player->name, top_card->character->name);
+	printf("Player %d %s won with a %s card.\n", top_card->player->index, top_card->player->name, top_card->character->name);
 
 	for (i = 0; i < player_count; i++)
 	{
@@ -214,7 +214,7 @@ struct card *choose_card(struct card *cards, int cards_drawn, int cards_length)
 	return chosen_card;
 }
 
-void player_draw(struct player *current_player, struct card *current_card)
+void player_draw(int player_count, struct player *players, struct player *current_player, struct card *current_card)
 {
 	current_card->player = current_player;
 
@@ -228,7 +228,12 @@ void player_draw(struct player *current_player, struct card *current_card)
 		printf("\nplayer %d\n", current_player->index);
 		printf("draw %s\n", current_card->character->name);
 	#endif
-	fprintf(current_player->stdin, "player %d\n", current_player->index);
+
+	int p;
+	for (p = 0; p < player_count; p++)
+	{
+		fprintf(players[p].stdin, "player %d\n", current_player->index);
+	}
 	fprintf(current_player->stdin, "draw %s\n", current_card->character->name);
 	fflush(current_player->stdin);
 }

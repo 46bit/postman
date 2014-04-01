@@ -48,7 +48,7 @@ struct pipexec *new_pipexec(char *program);
 
 struct card *choose_card(struct card *cards, int cards_drawn, int cards_length);
 
-void player_draw(struct player *current_player, struct card *current_card);
+void player_draw(int player_count, struct player *players, struct player *current_player, struct card *current_card);
 
 int player_move(struct player *current_player, int player_count, struct player *players, int character_count, struct character *characters);
 
