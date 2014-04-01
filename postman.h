@@ -49,7 +49,10 @@ struct card *choose_card(struct card *cards, int *cards_drawn, int cards_length)
 
 void player_draw(struct player *current_player, struct card *current_card);
 
-int player_move(struct player *current_player);
+int player_move(struct player *current_player, int player_count, struct player *players, int character_count, struct character *characters);
 
-int card_played(struct player *current_player, char *character_name);
+struct character *player_played_character(struct player *current_player, char *character_name);
 
+struct player *player_targeted_player(int player_count, struct player *players, char *player_index_chars);
+
+struct character *player_targeted_character(int character_count, struct character *characters, char *character_name);

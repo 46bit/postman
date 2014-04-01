@@ -4,8 +4,26 @@
 #include <unistd.h>
 #include <sys/time.h>
 
+struct character {
+	int score;
+	char *name;
+	int cards;
+};
+
 int main(int argc, char *argv[], char **envp)
 {
+	int characters_count = 8;
+	struct character characters[8] = {
+		{8, "Princess", 1},
+		{7, "Minister", 1},
+		{6, "General", 1},
+		{5, "Wizard", 2},
+		{4, "Priestess", 2},
+		{3, "Knight", 2},
+		{2, "Clown", 2},
+		{1, "Soldier", 5}
+	};
+
 	struct timeval time;
 	gettimeofday(&time, NULL);
 	long microsec = ((unsigned long long)time.tv_sec * 1000000) + time.tv_usec;
@@ -37,7 +55,21 @@ int main(int argc, char *argv[], char **envp)
 			hand[1] = item;
 			int which = rand() % 2;
 
-			printf("play %s\n", hand[which]);
+			char *character_name = hand[which];
+			if (strcmp(character_name, "Princess") == 0
+				|| strcmp(character_name, "Minister") == 0
+				|| strcmp(character_name, "Priestess") == 0) {
+				printf("play %s\n", character_name);
+			} else {
+				int target_player_index = rand() % 4;
+				if (strcmp(character_name, "Soldier") != 0) {
+					printf("play %s %d\n", character_name, target_player_index);
+				} else {
+					char *target_character_name = characters[rand() % characters_count].name;
+					printf("play %s %d %s\n", character_name, target_player_index, target_character_name);
+				}
+			}
+
 			fflush(stdout);
 			if (which == 0)
 			{

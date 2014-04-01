@@ -1,5 +1,7 @@
 #include "postman.h"
 
+#define DEBUG 1
+
 int main(int argc, char *argv[], char **envp)
 {
 	// Seed rand from microtime.
@@ -9,6 +11,7 @@ int main(int argc, char *argv[], char **envp)
 	srand(microsec);
 
 	// Setup game characters and cards.
+	int characters_count = 8;
 	struct character characters[8] = {
 		{8, "Princess", 1},
 		{7, "Minister", 1},
@@ -21,7 +24,7 @@ int main(int argc, char *argv[], char **envp)
 	};
 	struct card *cards;
 	int cards_drawn = 0, cards_length;
-	cards_length = character_cards_init(8, characters, &cards);
+	cards_length = character_cards_init(characters_count, characters, &cards);
 
 	// Setup game players as provided in argv.
 	int i, player_count = argc - 1;
@@ -36,10 +39,11 @@ int main(int argc, char *argv[], char **envp)
 		struct player *current_player = &players[current_player_index];
 
 		player_draw(current_player, picked_card);
-		if (initial_cards_drawn && player_move(current_player) == -1)
+		if (initial_cards_drawn && player_move(current_player, player_count, players, characters_count, characters) == -1)
 		{
 			// @TODO: player did an invalid move, forfeit the game.
 			printf("Player %s did an invalid move.\n", current_player->name);
+			return 1;
 		}
 
 		// This can be done in one line except detection of when initial cards
@@ -195,20 +199,24 @@ void player_draw(struct player *current_player, struct card *current_card)
 		current_player->hand[1] = current_card;
 	}
 
-	//printf("player %d\n", current_player->index);
+	#if DEBUG==1
+		printf("\nplayer %d\n", current_player->index);
+		printf("draw %s\n", current_card->character->name);
+	#endif
 	fprintf(current_player->stdin, "player %d\n", current_player->index);
-	//printf("draw %s\n", current_card->character->name);
 	fprintf(current_player->stdin, "draw %s\n", current_card->character->name);
 	fflush(current_player->stdin);
 }
 
-int player_move(struct player *current_player)
+int player_move(struct player *current_player, int player_count, struct player *players, int character_count, struct character *characters)
 {
 	int valid = -1;
 	char ai_move[31];
 	fgets(ai_move, 31, current_player->stdout);
-	strtok(ai_move, "\n");
-	strtok(ai_move, " ");
+	#if DEBUG==1
+		printf("%s", ai_move);
+	#endif
+	strtok(ai_move, "\n ");
 
 	if (strcmp(ai_move, "forfeit") == 0) {
 		valid = 1;
@@ -217,30 +225,118 @@ int player_move(struct player *current_player)
 
 	if (strcmp(ai_move, "play") == 0) {
 		valid = 1;
-		// find this card, remove from hand
-		if (card_played(current_player, ai_move+5) == -1)
+
+		char *ai_move_location = ai_move + 5;
+		strtok(ai_move_location, "\n ");
+		struct character *played_character;
+		if ((played_character = player_played_character(current_player, ai_move_location)) == NULL)
 		{
 			// @TODO: player did an invalid move, forfeit the game.
 			printf("Player %s did an invalid move.\n", current_player->name);
+			return -1;
+		}
+
+		ai_move_location += strlen(played_character->name) + 1;
+		strtok(ai_move_location, "\n ");
+
+		struct player *target_player = NULL;
+		if (played_character->score < 7 && played_character->score > 0
+			&& played_character->score != 4)
+		{
+			target_player = player_targeted_player(player_count, players, ai_move_location);
+		}
+		// @TODO: stop assuming numbers lack leading zeros, explicitly use how far
+		// player_targeted_player parsed.
+		int target_player_index_char_length = (target_player->index / 10) + 1;
+		ai_move_location += target_player_index_char_length + 1;
+		strtok(ai_move_location, "\n ");
+
+		struct character *target_character = NULL;
+		if (played_character->score == 1)
+		{
+			target_character = player_targeted_character(character_count, characters, ai_move_location);
+		}
+
+		switch (played_character->score)
+		{
+			case 8:
+				// Princess
+				break;
+			case 7:
+				// Minister
+				break;
+			case 6:
+				// General
+				break;
+			case 5:
+				// Wizard
+				break;
+			case 4:
+				// Priestess
+				break;
+			case 3:
+				// Knight
+				break;
+			case 2:
+				// Clown
+				break;
+			case 1:
+				// Soldier
+				break;
 		}
 	}
 
 	return valid;
 }
 
-int card_played(struct player *current_player, char *character_name)
+struct character *player_played_character(struct player *current_player, char *character_name)
 {
-	int valid = -1;
-
+	struct character *c = NULL;
 	if (current_player->hand[0] != NULL && strcmp(current_player->hand[0]->character->name, character_name) == 0)
 	{
-		valid = 1;
+		c = current_player->hand[0]->character;
 		current_player->hand[0] = current_player->hand[1];
 		current_player->hand[1] = NULL;
 	} else if (current_player->hand[1] != NULL && strcmp(current_player->hand[1]->character->name, character_name) == 0)
 	{
-		valid = 1;
+		c = current_player->hand[1]->character;
 		current_player->hand[1] = NULL;
 	}
-	return valid;
+	return c;
+}
+
+struct player *player_targeted_player(int player_count, struct player *players, char *player_index_chars)
+{
+	struct player *p = NULL;
+	int player_index = 0;
+	while (*player_index_chars != 0)
+	{
+		if (*player_index_chars > '9' || *player_index_chars < '0') {
+			// @TODO: If there's something wrong with the integer the Player gave us
+			// we should classify that as a loss rather than silently failing to
+			// parse partway through.
+			break;
+		}
+		player_index = player_index * 10 + *player_index_chars - '0';
+		player_index_chars++;
+	}
+	if (player_index >= 0 && player_index < player_count) {
+		p = &players[player_index];
+	}
+	return p;
+}
+
+struct character *player_targeted_character(int character_count, struct character *characters, char *character_name)
+{
+	struct character *c = NULL;
+	int i;
+	for (i = 0; i < character_count; i++)
+	{
+		if (strcmp(characters[i].name, character_name) == 0)
+		{
+			c = &characters[i];
+			break;
+		}
+	}
+	return c;
 }

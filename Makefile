@@ -1,7 +1,10 @@
+CC=cc
+CFLAGS=-Wall -O3
+
 all:
 	mkdir -p bin/players
-	clang postman.c -o bin/postman
-	clang players/random.c -o bin/players/random
+	$(CC) $(CFLAGS) postman.c -o bin/postman
+	$(CC) $(CFLAGS) players/random.c -o bin/players/random
 
 clean:
 	rm -rf bin

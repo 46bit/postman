@@ -11,8 +11,8 @@ make
 cd bin
 ```
 
-Run a game between 3 random players using:
+Now run a game between 4 random players. At present you can only run games of exactly 4 players.
 
 ```
-./postman ./players/random ./players/random ./players/random
+./postman ./players/random ./players/random ./players/random ./players/random
 ```
