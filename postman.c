@@ -34,16 +34,24 @@ int main(int argc, char *argv[], char **envp)
 	// Play game until cards run out.
 	struct card *picked_card;
 	int current_player_index = 0, initial_cards_drawn = 0;
-	while ((picked_card = choose_card(cards, &cards_drawn, cards_length)) != NULL)
+	while ((picked_card = choose_card(cards, cards_drawn, cards_length)) != NULL)
 	{
 		struct player *current_player = &players[current_player_index];
-
-		player_draw(current_player, picked_card);
-		if (initial_cards_drawn && player_move(current_player, player_count, players, characters_count, characters) == -1)
+		if (current_player->playing)
 		{
-			// @TODO: player did an invalid move, forfeit the game.
-			printf("Player %s did an invalid move.\n", current_player->name);
-			return 1;
+			cards_drawn++;
+
+			player_draw(current_player, picked_card);
+			if (initial_cards_drawn && player_move(current_player, player_count, players, characters_count, characters) == -1)
+			{
+				// @TODO: player did an invalid move, forfeit the game.
+				printf("\nPlayer %s did an invalid move.\n", current_player->name);
+				return 1;
+			}
+		} else {
+			#if DEBUG==1
+				printf("\nPlayer %d is out.\n", current_player->index);
+			#endif
 		}
 
 		// This can be done in one line except detection of when initial cards
@@ -125,6 +133,7 @@ void players_init(int player_count, struct player *players, char **programs)
 		// Fork off the player program then save pid/stdin/stdout for our use.
 		struct player *current_player = &players[i];
 		current_player->index = i;
+		current_player->playing = 1;
 		current_player->program = programs[i];
 		struct pipexec *p = new_pipexec(current_player->program);
 		current_player->pid = p->pid;
@@ -170,10 +179,10 @@ struct pipexec *new_pipexec(char *program)
 	return p;
 }
 
-struct card *choose_card(struct card *cards, int *cards_drawn, int cards_length)
+struct card *choose_card(struct card *cards, int cards_drawn, int cards_length)
 {
 	struct card *chosen_card = NULL;
-	if (*cards_drawn < cards_length)
+	if (cards_drawn < cards_length)
 	{
 		while (1)
 		{
@@ -181,7 +190,6 @@ struct card *choose_card(struct card *cards, int *cards_drawn, int cards_length)
 			chosen_card = &(cards[chosen_card_index]);
 			if (chosen_card->player == NULL)
 			{
-				(*cards_drawn)++;
 				break;
 			}
 		}
@@ -221,6 +229,7 @@ int player_move(struct player *current_player, int player_count, struct player *
 	if (strcmp(ai_move, "forfeit") == 0) {
 		valid = 1;
 		printf("=> forfeited\n");
+		// @TODO: make players who forfeit stop playing
 	}
 
 	if (strcmp(ai_move, "play") == 0) {
@@ -261,27 +270,49 @@ int player_move(struct player *current_player, int player_count, struct player *
 		{
 			case 8:
 				// Princess
+				current_player->playing = 0;
+				#if DEBUG==1
+					printf("out %d %s\n", current_player->index, current_player->hand[0]->character->name);
+				#endif
+				int p;
+				for (p = 0; p < player_count; p++)
+				{
+					fprintf(players[p].stdin, "out %d %s\n", current_player->index, current_player->hand[0]->character->name);
+				}
 				break;
 			case 7:
 				// Minister
+				// @TODO: effect of minister takes place on draw rather than play
 				break;
 			case 6:
 				// General
+				// @TODO: swap hands of current_player with target_player
+				// Run `swap Princess` for instance. Both players have 1 card.
 				break;
 			case 5:
 				// Wizard
+				// @TODO: target_player discards hand, draws new card
+				// Run `discard` for the card in their hand. `out` describes the
+				// cards in a player hand as well.
 				break;
 			case 4:
 				// Priestess
+				// @TODO: make player invulnerable until next turn. Best implemented
+				// with a boolean flag on struct player.
 				break;
 			case 3:
 				// Knight
+				// @TODO: Internally compare value of card in each player's hand,
+				// `out` iff one player scores lower than other.
 				break;
 			case 2:
 				// Clown
+				// @TODO: reveal card in target_player hand to current_player only.
 				break;
 			case 1:
 				// Soldier
+				// @TODO: check if target_player has target_character card. If they
+				// do have the card, `out`.
 				break;
 		}
 	}

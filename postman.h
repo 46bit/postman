@@ -18,6 +18,7 @@ struct pipexec {
 
 struct player {
 	int index;
+	int playing;
 	char *name;
 	char *program;
 	struct card **hand;
@@ -45,7 +46,7 @@ void players_init(int player_count, struct player *players, char **programs);
 
 struct pipexec *new_pipexec(char *program);
 
-struct card *choose_card(struct card *cards, int *cards_drawn, int cards_length);
+struct card *choose_card(struct card *cards, int cards_drawn, int cards_length);
 
 void player_draw(struct player *current_player, struct card *current_card);
 
