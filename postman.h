@@ -19,6 +19,7 @@ struct pipexec {
 struct player {
 	int index;
 	int playing;
+	int protected;
 	char *name;
 	char *program;
 	struct card **hand;
@@ -38,7 +39,7 @@ struct card {
 	struct player *player;
 };
 
-int main(int argc, char *argv[], char **envp);
+int main(int argc, char *argv[]);
 
 int character_cards_init(int characters_length, struct character *characters, struct card **cards);
 
@@ -54,6 +55,6 @@ int player_move(struct player *current_player, int player_count, struct player *
 
 struct character *player_played_character(struct player *current_player, char *character_name);
 
-struct player *player_targeted_player(int player_count, struct player *players, char *player_index_chars);
+struct player *player_targeted_player(struct player *players, char *player_index_chars);
 
 struct character *player_targeted_character(int character_count, struct character *characters, char *character_name);

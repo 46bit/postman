@@ -1,5 +1,5 @@
-CC=cc
-CFLAGS=-Wall -O3
+CC=clang
+CFLAGS=-O3 -Wall -Wextra -g
 
 all:
 	mkdir -p bin/players

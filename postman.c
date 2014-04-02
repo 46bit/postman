@@ -2,7 +2,7 @@
 
 #define DEBUG 1
 
-int main(int argc, char *argv[], char **envp)
+int main(int argc, char *argv[])
 {
 	// Seed rand from microtime.
 	struct timeval time;
@@ -56,6 +56,7 @@ int main(int argc, char *argv[], char **envp)
 		struct player *current_player = &players[current_player_index];
 		if (current_player->playing)
 		{
+			current_player->protected = 0;
 			cards_drawn++;
 
 			player_draw(player_count, players, current_player, picked_card);
@@ -151,6 +152,7 @@ void players_init(int player_count, struct player *players, char **programs)
 		struct player *current_player = &players[i];
 		current_player->index = i;
 		current_player->playing = 1;
+		current_player->protected = 0;
 		current_player->program = programs[i];
 		struct pipexec *p = new_pipexec(current_player->program);
 		current_player->pid = p->pid;
@@ -261,6 +263,18 @@ int player_move(struct player *current_player, int player_count, struct player *
 		valid = 1;
 
 		char *ai_move_location = ai_move + 5;
+		#if DEBUG==1
+			printf("played %s\n", ai_move_location);
+		#endif
+		int p;
+		for (p = 0; p < player_count; p++)
+		{
+			if (players[p].playing)
+			{
+				fprintf(players[p].stdin, "played %s\n", ai_move_location);
+			}
+		}
+
 		strtok(ai_move_location, "\n ");
 		struct character *played_character;
 		if ((played_character = player_played_character(current_player, ai_move_location)) == NULL)
@@ -270,78 +284,147 @@ int player_move(struct player *current_player, int player_count, struct player *
 			return -1;
 		}
 
-		ai_move_location += strlen(played_character->name) + 1;
-		strtok(ai_move_location, "\n ");
-
 		struct player *target_player = NULL;
+		struct character *target_character = NULL;
 		if (played_character->score < 7 && played_character->score > 0
 			&& played_character->score != 4)
 		{
-			target_player = player_targeted_player(player_count, players, ai_move_location);
-		}
-		// @TODO: stop assuming numbers lack leading zeros, explicitly use how far
-		// player_targeted_player parsed.
-		int target_player_index_char_length = (target_player->index / 10) + 1;
-		ai_move_location += target_player_index_char_length + 1;
-		strtok(ai_move_location, "\n ");
+			ai_move_location += strlen(played_character->name) + 1;
+			strtok(ai_move_location, "\n ");
 
-		struct character *target_character = NULL;
-		if (played_character->score == 1)
-		{
-			target_character = player_targeted_character(character_count, characters, ai_move_location);
+			target_player = player_targeted_player(players, ai_move_location);
+			if (target_player == NULL)
+			{
+				printf("Player %s specified an invalid target player.\n", current_player->name);
+				return -1;
+			}
+
+			if (played_character->score == 1)
+			{
+			// @TODO: stop assuming numbers lack leading zeros, explicitly use how far
+			// player_targeted_player parsed.
+				int target_player_index_char_length = (target_player->index / 10) + 1;
+				ai_move_location += target_player_index_char_length + 1;
+				strtok(ai_move_location, "\n ");
+
+				target_character = player_targeted_character(character_count, characters, ai_move_location);
+				if (target_character == NULL)
+				{
+					printf("Player %s specified an invalid target character.\n", current_player->name);
+					return -1;
+				}
+			}
 		}
 
 		switch (played_character->score)
 		{
-			case 8:
-				// Princess
-				current_player->playing = 0;
+		case 8:
+			// Princess
+			current_player->playing = 0;
+			#if DEBUG==1
+				printf("out %d %s\n", current_player->index, current_player->hand[0]->character->name);
+			#endif
+			int p;
+			for (p = 0; p < player_count; p++)
+			{
+				if (players[p].playing)
+				{
+					fprintf(players[p].stdin, "out %d %s\n", current_player->index, current_player->hand[0]->character->name);
+				}
+			}
+			break;
+		case 7:
+			// Minister
+			// @TODO: effect of minister takes place on draw rather than play
+			break;
+		case 6:
+			// General
+			if (target_player->playing && !target_player->protected)
+			{
+				fprintf(current_player->stdin, "swap %s\n", target_player->hand[0]->character->name);
+				fprintf(target_player->stdin, "swap %s\n", current_player->hand[0]->character->name);
+				struct card *temp_card = current_player->hand[0];
+				current_player->hand[0] = target_player->hand[0];
+				target_player->hand[0] = temp_card;
+			} else {
+				// @TODO: handle case where target player is out or has played a
+				// Priestess. What do we send to the players to describe this
+				// situation?
+			}
+			break;
+		case 5:
+			// Wizard
+			// @TODO: target_player discards hand, draws new card
+			// Run `discard` for the card in their hand. `out` describes the
+			// cards in a player hand as well.
+			// @TODO: Tidy drawing new card into routine that doesn't need 15
+			// lines of code here.
+			//fprintf(target_player->stdin, "discard %s\n", target_player->hand[0]->character->name);
+			//fprintf(target_player->stdin, "draw %s\n", );
+			break;
+		case 4:
+			// Priestess
+			// We unprotect a player each time their turn comes up.
+			current_player->protected = 1;
+			break;
+		case 3:
+			// Knight
+			// @TODO: Internally compare value of card in each player's hand,
+			// `out` iff one player scores lower than other.
+			// @TODO: why on earth does not cc nor clang parse without the semicolon??
+			;
+			int current_score = current_player->hand[0]->character->score;
+			int target_score = target_player->hand[0]->character->score;
+			struct player *out_player = NULL;
+			if (current_score < target_score)
+			{
+				out_player = current_player;
+			} else if (target_score < current_score) {
+				out_player = target_player;
+			} else {
+				// @TODO: what to send to bots when the Knight is a draw?
+			}
+			if (out_player != NULL)
+			{
+				out_player->playing = 0;
 				#if DEBUG==1
-					printf("out %d %s\n", current_player->index, current_player->hand[0]->character->name);
+					printf("out %d %s\n", out_player->index, out_player->hand[0]->character->name);
 				#endif
 				int p;
 				for (p = 0; p < player_count; p++)
 				{
 					if (players[p].playing)
 					{
-						fprintf(players[p].stdin, "out %d %s\n", current_player->index, current_player->hand[0]->character->name);
+						fprintf(players[p].stdin, "out %d %s\n", out_player->index, out_player->hand[0]->character->name);
 					}
 				}
-				break;
-			case 7:
-				// Minister
-				// @TODO: effect of minister takes place on draw rather than play
-				break;
-			case 6:
-				// General
-				// @TODO: swap hands of current_player with target_player
-				// Run `swap Princess` for instance. Both players have 1 card.
-				break;
-			case 5:
-				// Wizard
-				// @TODO: target_player discards hand, draws new card
-				// Run `discard` for the card in their hand. `out` describes the
-				// cards in a player hand as well.
-				break;
-			case 4:
-				// Priestess
-				// @TODO: make player invulnerable until next turn. Best implemented
-				// with a boolean flag on struct player.
-				break;
-			case 3:
-				// Knight
-				// @TODO: Internally compare value of card in each player's hand,
-				// `out` iff one player scores lower than other.
-				break;
-			case 2:
-				// Clown
-				// @TODO: reveal card in target_player hand to current_player only.
-				break;
-			case 1:
-				// Soldier
-				// @TODO: check if target_player has target_character card. If they
-				// do have the card, `out`.
-				break;
+			}
+			break;
+		case 2:
+			// Clown
+			// @TODO: reveal card in target_player hand to current_player only.
+			fprintf(current_player->stdin, "reveal %s\n", target_player->hand[0]->character->name);
+			break;
+		case 1:
+			// Soldier
+			// @TODO: check if target_player has target_character card. If they
+			// do have the card, `out`.
+			if (target_player->hand[0]->character == target_character)
+			{
+				target_player->playing = 0;
+				#if DEBUG==1
+					printf("out %d %s\n", target_player->index, target_player->hand[0]->character->name);
+				#endif
+				int p;
+				for (p = 0; p < player_count; p++)
+				{
+					if (players[p].playing)
+					{
+						fprintf(players[p].stdin, "out %d %s\n", target_player->index, target_player->hand[0]->character->name);
+					}
+				}
+			}
+			break;
 		}
 	}
 
@@ -364,22 +447,11 @@ struct character *player_played_character(struct player *current_player, char *c
 	return c;
 }
 
-struct player *player_targeted_player(int player_count, struct player *players, char *player_index_chars)
+struct player *player_targeted_player(struct player *players, char *player_index_chars)
 {
 	struct player *p = NULL;
-	int player_index = 0;
-	while (*player_index_chars != 0)
-	{
-		if (*player_index_chars > '9' || *player_index_chars < '0') {
-			// @TODO: If there's something wrong with the integer the Player gave us
-			// we should classify that as a loss rather than silently failing to
-			// parse partway through.
-			break;
-		}
-		player_index = player_index * 10 + *player_index_chars - '0';
-		player_index_chars++;
-	}
-	if (player_index >= 0 && player_index < player_count) {
+	int player_index = (*player_index_chars - '0');
+	if (player_index >= 0 && player_index < 4) {
 		p = &players[player_index];
 	}
 	return p;

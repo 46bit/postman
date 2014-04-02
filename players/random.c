@@ -10,7 +10,7 @@ struct character {
 	int cards;
 };
 
-int main(int argc, char *argv[], char **envp)
+int main()
 {
 	int characters_count = 8;
 	struct character characters[8] = {
@@ -59,13 +59,16 @@ int main(int argc, char *argv[], char **envp)
 			if (strcmp(character_name, "Princess") == 0
 				|| strcmp(character_name, "Minister") == 0
 				|| strcmp(character_name, "Priestess") == 0) {
+				fprintf(stderr, "play %s\n", character_name);
 				printf("play %s\n", character_name);
 			} else {
 				int target_player_index = rand() % 4;
 				if (strcmp(character_name, "Soldier") != 0) {
+					fprintf(stderr, "play %s %d\n", character_name, target_player_index);
 					printf("play %s %d\n", character_name, target_player_index);
 				} else {
 					char *target_character_name = characters[rand() % characters_count].name;
+					fprintf(stderr, "play %s %d %s\n", character_name, target_player_index, target_character_name);
 					printf("play %s %d %s\n", character_name, target_player_index, target_character_name);
 				}
 			}
