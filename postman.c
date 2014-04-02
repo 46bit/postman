@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
 	srand(microsec);
 
 	// Setup Postman state
-	struct postman *postman = postman_init(argc - 1, argv+1);
+	struct postman *postman = postman_init(argc - 1, argv + 1);
 	play_game(postman);
 	score_game(postman);
 	cleanup_game(postman);
@@ -236,6 +236,8 @@ void player_draw(struct postman *postman, struct card *current_card)
 int player_move(struct postman *postman)
 {
 	int valid = -1;
+
+	// Now we have drawn the player a card on their turn, get player move from stdout.
 	char ai_move[31];
 	fgets(ai_move, 31, postman->current_player->pipexec->stdout);
 	#if DEBUG==1
@@ -243,14 +245,20 @@ int player_move(struct postman *postman)
 	#endif
 	strtok(ai_move, "\n ");
 
+	// Forfeit if chosen.
 	if (strcmp(ai_move, "forfeit") == 0) {
 		valid = 1;
 		forfeit_player(postman, postman->current_player);
 	}
 
+	// Parse out play action if chosen.
 	if (strcmp(ai_move, "play") == 0) {
 		valid = 1;
 
+		// Get played character name.
+		// @TODO: Need to send fellow players the additional information about a
+		// played move, not just the character name.
+		// @TODO: Stop using ai_move_location raw, we wrap into character below.
 		char *ai_move_location = ai_move + 5;
 		#if DEBUG==1
 			printf("played %s\n", ai_move_location);
@@ -264,6 +272,7 @@ int player_move(struct postman *postman)
 			}
 		}
 
+		// Get character struct of chosen character name. Forfeit if invalid.
 		strtok(ai_move_location, "\n ");
 		struct character *played_character;
 		if ((played_character = player_played_character(postman, ai_move_location)) == NULL)
@@ -278,6 +287,7 @@ int player_move(struct postman *postman)
 
 		struct player *target_player = NULL;
 		struct character *target_character = NULL;
+		// If a character was played that has a target player, get the target player.
 		if (played_character->score < 7 && played_character->score > 0
 			&& played_character->score != 4)
 		{
@@ -294,6 +304,8 @@ int player_move(struct postman *postman)
 				return -1;
 			}
 
+			// If a character was played that has a target character as well, get the
+			// target character.
 			if (played_character->score == 1)
 			{
 				// @TODO: stop assuming numbers lack leading zeros, explicitly use how far
@@ -314,6 +326,11 @@ int player_move(struct postman *postman)
 			}
 		}
 
+		// Apply appropriate card actions.
+		// @TODO: find cleaner way to handle this. It seems easiest to have a void
+		// pointer on character structs that points to a handling function. We can
+		// intelligently pick the exact signature to call it with when parsing the
+		// play message.
 		switch (played_character->score)
 		{
 		case 8:
