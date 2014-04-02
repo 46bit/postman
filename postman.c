@@ -135,7 +135,12 @@ void play_game(struct postman *postman)
 {
 	// Play game until cards run out.
 	struct card *picked_card;
-	int current_player_index = 0, initial_cards_drawn = 0;
+	int current_player_index = rand() % postman->players_count, initial_cards_drawn = 0;
+
+	#if DEBUG==1
+		printf("Player %d %s to start.\n", current_player_index, postman->players[current_player_index].name);
+	#endif
+
 	while ((picked_card = choose_card(postman)) != NULL)
 	{
 		// Check we have at least 2 players not out. End game if appropriate.
@@ -175,10 +180,9 @@ void play_game(struct postman *postman)
 
 		// This can be done in one line except detection of when initial cards
 		// have been distributed to all players is easiest here.
-		current_player_index++;
-		if (current_player_index >= postman->players_count) {
+		current_player_index = (current_player_index + 1) % postman->players_count;
+		if (postman->cards_drawn == postman->players_count) {
 			initial_cards_drawn = 1;
-			current_player_index = current_player_index % postman->players_count;
 		}
 	}
 }
