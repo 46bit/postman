@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
 	srand(microsec);
 
 	// Setup Postman state
-	struct postman *postman = postman_init();
+	struct postman *postman = postman_init(argc - 1, argv+1);
 	play_game(postman);
 	score_game(postman);
 	cleanup_game(postman);
@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
-struct postman *postman_init()
+struct postman *postman_init(int players_count, char **programs)
 {
 	struct postman *postman = malloc(sizeof(struct postman));
 
@@ -42,8 +42,8 @@ struct postman *postman_init()
 	postman->cards_drawn = 0;
 
 	// Setup game players as provided in argv
-	postman->players_count = argc - 1;
-	players_init(postman, argv+1);
+	postman->players_count = players_count;
+	players_init(postman, programs);
 
 	return postman;
 }
@@ -135,6 +135,7 @@ void play_game(struct postman *postman)
 	int current_player_index = 0, initial_cards_drawn = 0;
 	while ((picked_card = choose_card(postman)) != NULL)
 	{
+		printf("fsd\n");
 		// Check we have at least 2 players not out. End game if appropriate.
 		int p, active_players_count = 0;
 		for (p = 0; p < postman->players_count; p++)
@@ -184,12 +185,15 @@ void play_game(struct postman *postman)
 struct card *choose_card(struct postman *postman)
 {
 	struct card *chosen_card = NULL;
+	printf("bcd %d %d\n", postman->cards_drawn, postman->cards_count);
 	if (postman->cards_drawn < postman->cards_count)
 	{
 		while (1)
 		{
 			int chosen_card_index = rand() % postman->cards_count;
-			chosen_card = &(postman->cards[chosen_card_index]);
+			struct card *cards = postman->cards;
+			chosen_card = &cards[chosen_card_index];
+			printf("abc %d %s\n", chosen_card, (char*)choose_card->character->name);
 			if (chosen_card->player == NULL)
 			{
 				break;
