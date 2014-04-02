@@ -39,7 +39,7 @@ int main()
 		strtok(play, "\n");
 		strtok(play, " ");
 
-		if (strcmp(play, "draw") == 0)
+		if (strcmp(play, "draw") == 0 || strcmp(play, "swap") == 0)
 		{
 			if (has_been_drawn == 0)
 			{
@@ -55,22 +55,26 @@ int main()
 			hand[1] = item;
 			int which = rand() % 2;
 
-			char *character_name = hand[which];
-			if (strcmp(character_name, "Princess") == 0
-				|| strcmp(character_name, "Minister") == 0
-				|| strcmp(character_name, "Priestess") == 0) {
-				fprintf(stderr, "play %s\n", character_name);
-				printf("play %s\n", character_name);
-			} else {
-				int target_player_index = rand() % 4;
-				if (strcmp(character_name, "Soldier") != 0) {
-					fprintf(stderr, "play %s %d\n", character_name, target_player_index);
-					printf("play %s %d\n", character_name, target_player_index);
+			if (strcmp(play, "draw") == 0) {
+				char *character_name = hand[which];
+				if (strcmp(character_name, "Princess") == 0
+					|| strcmp(character_name, "Minister") == 0
+					|| strcmp(character_name, "Priestess") == 0) {
+					fprintf(stderr, "play %s\n", character_name);
+					printf("play %s\n", character_name);
 				} else {
-					char *target_character_name = characters[rand() % characters_count].name;
-					fprintf(stderr, "play %s %d %s\n", character_name, target_player_index, target_character_name);
-					printf("play %s %d %s\n", character_name, target_player_index, target_character_name);
+					int target_player_index = rand() % 4;
+					if (strcmp(character_name, "Soldier") != 0) {
+						fprintf(stderr, "play %s %d\n", character_name, target_player_index);
+						printf("play %s %d\n", character_name, target_player_index);
+					} else {
+						char *target_character_name = characters[rand() % characters_count].name;
+						fprintf(stderr, "play %s %d %s\n", character_name, target_player_index, target_character_name);
+						printf("play %s %d %s\n", character_name, target_player_index, target_character_name);
+					}
 				}
+			} else {
+				which = 0;
 			}
 
 			fflush(stdout);

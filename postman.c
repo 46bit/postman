@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
 			if (initial_cards_drawn && player_move(current_player, player_count, players, characters_count, characters) == -1)
 			{
 				// @TODO: player did an invalid move, forfeit the game.
-				printf("\nPlayer %s did an invalid move.\n", current_player->name);
+				printf("\n(player_move) Player %s did an invalid move.\n", current_player->name);
 				current_player->playing = 0;
 			}
 		} else {
@@ -255,8 +255,18 @@ int player_move(struct player *current_player, int player_count, struct player *
 
 	if (strcmp(ai_move, "forfeit") == 0) {
 		valid = 1;
-		printf("=> forfeited\n");
-		// @TODO: make players who forfeit stop playing
+		current_player->playing = 0;
+		#if DEBUG==1
+			printf("out %d %s\n", current_player->index, current_player->hand[0]->character->name);
+		#endif
+		int p;
+		for (p = 0; p < player_count; p++)
+		{
+			if (players[p].playing)
+			{
+				fprintf(players[p].stdin, "out %d %s\n", current_player->index, current_player->hand[0]->character->name);
+			}
+		}
 	}
 
 	if (strcmp(ai_move, "play") == 0) {
@@ -280,7 +290,21 @@ int player_move(struct player *current_player, int player_count, struct player *
 		if ((played_character = player_played_character(current_player, ai_move_location)) == NULL)
 		{
 			// @TODO: player did an invalid move, forfeit the game.
-			printf("Player %s did an invalid move.\n", current_player->name);
+			#if DEBUG==1
+				printf("(player_played_character) Player %s did an invalid move.\n", current_player->name);
+			#endif
+			current_player->playing = 0;
+			#if DEBUG==1
+				printf("out %d %s\n", current_player->index, current_player->hand[0]->character->name);
+			#endif
+			int p;
+			for (p = 0; p < player_count; p++)
+			{
+				if (players[p].playing)
+				{
+					fprintf(players[p].stdin, "out %d %s\n", current_player->index, current_player->hand[0]->character->name);
+				}
+			}
 			return -1;
 		}
 
@@ -295,14 +319,28 @@ int player_move(struct player *current_player, int player_count, struct player *
 			target_player = player_targeted_player(players, ai_move_location);
 			if (target_player == NULL)
 			{
-				printf("Player %s specified an invalid target player.\n", current_player->name);
+				#if DEBUG==1
+					printf("(player_targeted_player) Player %s specified an invalid target player.\n", current_player->name);
+				#endif
+				current_player->playing = 0;
+				#if DEBUG==1
+					printf("out %d %s\n", current_player->index, current_player->hand[0]->character->name);
+				#endif
+				int p;
+				for (p = 0; p < player_count; p++)
+				{
+					if (players[p].playing)
+					{
+						fprintf(players[p].stdin, "out %d %s\n", current_player->index, current_player->hand[0]->character->name);
+					}
+				}
 				return -1;
 			}
 
 			if (played_character->score == 1)
 			{
-			// @TODO: stop assuming numbers lack leading zeros, explicitly use how far
-			// player_targeted_player parsed.
+				// @TODO: stop assuming numbers lack leading zeros, explicitly use how far
+				// player_targeted_player parsed.
 				int target_player_index_char_length = (target_player->index / 10) + 1;
 				ai_move_location += target_player_index_char_length + 1;
 				strtok(ai_move_location, "\n ");
@@ -310,7 +348,21 @@ int player_move(struct player *current_player, int player_count, struct player *
 				target_character = player_targeted_character(character_count, characters, ai_move_location);
 				if (target_character == NULL)
 				{
-					printf("Player %s specified an invalid target character.\n", current_player->name);
+					#if DEBUG==1
+						printf("(player_targeted_character) Player %s specified an invalid target character.\n", current_player->name);
+					#endif
+					current_player->playing = 0;
+					#if DEBUG==1
+						printf("out %d %s\n", current_player->index, current_player->hand[0]->character->name);
+					#endif
+					int p;
+					for (p = 0; p < player_count; p++)
+					{
+						if (players[p].playing)
+						{
+							fprintf(players[p].stdin, "out %d %s\n", current_player->index, current_player->hand[0]->character->name);
+						}
+					}
 					return -1;
 				}
 			}
@@ -371,7 +423,8 @@ int player_move(struct player *current_player, int player_count, struct player *
 			// Knight
 			// @TODO: Internally compare value of card in each player's hand,
 			// `out` iff one player scores lower than other.
-			// @TODO: why on earth does not cc nor clang parse without the semicolon??
+			// @TODO: Refactor to use functions to apply cards, for now we just use
+			// the semicolon since there's no useful statement to lead with.
 			;
 			int current_score = current_player->hand[0]->character->score;
 			int target_score = target_player->hand[0]->character->score;
