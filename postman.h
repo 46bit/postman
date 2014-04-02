@@ -24,6 +24,7 @@ struct character {
 	int score;
 	char *name;
 	int cards_count;
+	void (*play_handler)(struct postman *postman, char *arguments);
 };
 
 struct card {
@@ -73,21 +74,25 @@ struct player *player_targeted_player(struct postman *postman, char *player_inde
 
 struct character *player_targeted_character(struct postman *postman, char *character_name);
 
+struct player *play_get_player(struct postman *postman, char **arguments);
+
+struct character *play_get_character(struct postman *postman, char **arguments);
+
 void forfeit_player(struct postman *postman, struct player *target_player);
 
-void played_princess(struct postman *postman);
+void played_princess(struct postman *postman, char *arguments);
 
-void played_general(struct postman *postman, struct player *target_player);
+void played_general(struct postman *postman, char *arguments);
 
-void played_wizard(struct postman *postman, struct player *target_player);
+void played_wizard(struct postman *postman, char *arguments);
 
-void played_priestess(struct postman *postman);
+void played_priestess(struct postman *postman, char *arguments);
 
-void played_knight(struct postman *postman, struct player *target_player);
+void played_knight(struct postman *postman, char *arguments);
 
-void played_clown(struct postman *postman, struct player *target_player);
+void played_clown(struct postman *postman, char *arguments);
 
-void played_soldier(struct postman *postman, struct player *target_player, struct character *target_character);
+void played_soldier(struct postman *postman, char *arguments);
 
 void score_game(struct postman *postman);
 

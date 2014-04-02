@@ -26,14 +26,14 @@ struct postman *postman_init(int players_count, char **programs)
 	// Setup game characters
 	postman->characters_count = 8;
 	postman->characters = malloc(postman->characters_count * sizeof(struct character));
-	postman->characters[0] = (struct character) {8, "Princess", 1};
-	postman->characters[1] = (struct character) {7, "Minister", 1};
-	postman->characters[2] = (struct character) {6, "General", 1};
-	postman->characters[3] = (struct character) {5, "Wizard", 2};
-	postman->characters[4] = (struct character) {4, "Priestess", 2};
-	postman->characters[5] = (struct character) {3, "Knight", 2};
-	postman->characters[6] = (struct character) {2, "Clown", 2};
-	postman->characters[7] = (struct character) {1, "Soldier", 5};
+	postman->characters[0] = (struct character) {8, "Princess", 1, played_princess};
+	postman->characters[1] = (struct character) {7, "Minister", 1, NULL};
+	postman->characters[2] = (struct character) {6, "General", 1, played_general};
+	postman->characters[3] = (struct character) {5, "Wizard", 2, played_wizard};
+	postman->characters[4] = (struct character) {4, "Priestess", 2, played_priestess};
+	postman->characters[5] = (struct character) {3, "Knight", 2, played_knight};
+	postman->characters[6] = (struct character) {2, "Clown", 2, played_clown};
+	postman->characters[7] = (struct character) {1, "Soldier", 5, played_soldier};
 
 	// Setup game cards from characters
 	postman->cards_drawn = 0;
@@ -255,10 +255,7 @@ int player_move(struct postman *postman)
 	if (strcmp(ai_move, "play") == 0) {
 		valid = 1;
 
-		// Get played character name.
-		// @TODO: Need to send fellow players the additional information about a
-		// played move, not just the character name.
-		// @TODO: Stop using ai_move_location raw, we wrap into character below.
+		// Print played move.
 		char *ai_move_location = ai_move + 5;
 		#if DEBUG==1
 			printf("played %s\n", ai_move_location);
@@ -272,99 +269,14 @@ int player_move(struct postman *postman)
 			}
 		}
 
-		// Get character struct of chosen character name. Forfeit if invalid.
+		// Get chosen character.
 		strtok(ai_move_location, "\n ");
-		struct character *played_character;
-		if ((played_character = player_played_character(postman, ai_move_location)) == NULL)
+		struct character *played_character = play_get_character(postman, &ai_move_location);
+
+		// Run character callback for all those with one (all except Minister).
+		if (played_character->play_handler != NULL)
 		{
-			// @TODO: player did an invalid move, forfeit the game.
-			#if DEBUG==1
-				printf("(player_played_character) Player %s did an invalid move.\n", postman->current_player->name);
-			#endif
-			forfeit_player(postman, postman->current_player);
-			return -1;
-		}
-
-		struct player *target_player = NULL;
-		struct character *target_character = NULL;
-		// If a character was played that has a target player, get the target player.
-		if (played_character->score < 7 && played_character->score > 0
-			&& played_character->score != 4)
-		{
-			ai_move_location += strlen(played_character->name) + 1;
-			strtok(ai_move_location, "\n ");
-
-			target_player = player_targeted_player(postman, ai_move_location);
-			if (target_player == NULL)
-			{
-				#if DEBUG==1
-					printf("(player_targeted_player) Player %s specified an invalid target player.\n", postman->current_player->name);
-				#endif
-				forfeit_player(postman, postman->current_player);
-				return -1;
-			}
-
-			// If a character was played that has a target character as well, get the
-			// target character.
-			if (played_character->score == 1)
-			{
-				// @TODO: stop assuming numbers lack leading zeros, explicitly use how far
-				// player_targeted_player parsed.
-				int target_player_index_char_length = (target_player->index / 10) + 1;
-				ai_move_location += target_player_index_char_length + 1;
-				strtok(ai_move_location, "\n ");
-
-				target_character = player_targeted_character(postman, ai_move_location);
-				if (target_character == NULL)
-				{
-					#if DEBUG==1
-						printf("(player_targeted_character) Player %s specified an invalid target character.\n", postman->current_player->name);
-					#endif
-					forfeit_player(postman, postman->current_player);
-					return -1;
-				}
-			}
-		}
-
-		// Apply appropriate card actions.
-		// @TODO: find cleaner way to handle this. It seems easiest to have a void
-		// pointer on character structs that points to a handling function. We can
-		// intelligently pick the exact signature to call it with when parsing the
-		// play message.
-		switch (played_character->score)
-		{
-		case 8:
-			// Princess
-			played_princess(postman);
-			break;
-		case 7:
-			// Minister
-			// @TODO: effect of minister takes place on draw rather than play
-			break;
-		case 6:
-			// General
-			played_general(postman, target_player);
-			break;
-		case 5:
-			// Wizard
-			played_wizard(postman, target_player);
-			break;
-		case 4:
-			// Priestess
-			played_priestess(postman);
-			break;
-		case 3:
-			// Knight
-			played_knight(postman, target_player);
-			break;
-		case 2:
-			// Clown
-			played_clown(postman, target_player);
-			break;
-		case 1:
-			// Soldier
-			played_soldier(postman, target_player, target_character);
-			break;
+			played_character->play_handler(postman, ai_move_location);
 		}
 	}
 
@@ -416,6 +328,37 @@ struct character *player_targeted_character(struct postman *postman, char *chara
 	return c;
 }
 
+struct player *play_get_player(struct postman *postman, char **arguments)
+{
+	strtok(*arguments, "\n ");
+	struct player *player = player_targeted_player(postman, *arguments);
+	if (player == NULL)
+	{
+		#if DEBUG==1
+			printf("Player %s specified an invalid player.\n", postman->current_player->name);
+		#endif
+		forfeit_player(postman, postman->current_player);
+	}
+	*arguments += 2;
+	return player;
+}
+
+struct character *play_get_character(struct postman *postman, char **arguments)
+{
+	strtok(*arguments, "\n ");
+
+	struct character *character = player_targeted_character(postman, *arguments);
+	if (character == NULL)
+	{
+		#if DEBUG==1
+			printf("Player %s specified an invalid character.\n", postman->current_player->name);
+		#endif
+		forfeit_player(postman, postman->current_player);
+	}
+	*arguments += strlen(character->name) + 1;
+	return character;
+}
+
 void forfeit_player(struct postman *postman, struct player *target_player)
 {
 	#if DEBUG==1
@@ -434,13 +377,14 @@ void forfeit_player(struct postman *postman, struct player *target_player)
 	target_player->playing = 0;
 }
 
-void played_princess(struct postman *postman)
+void played_princess(struct postman *postman, char *arguments)
 {
 	forfeit_player(postman, postman->current_player);
 }
 
-void played_general(struct postman *postman, struct player *target_player)
+void played_general(struct postman *postman, char *arguments)
 {
+	struct player *target_player = play_get_player(postman, &arguments);
 	if (target_player->playing && !target_player->protected)
 	{
 		fprintf(postman->current_player->pipexec->stdin, "swap %s\n", target_player->hand[0]->character->name);
@@ -455,8 +399,9 @@ void played_general(struct postman *postman, struct player *target_player)
 	}
 }
 
-void played_wizard(struct postman *postman, struct player *target_player)
+void played_wizard(struct postman *postman, char *arguments)
 {
+	struct player *target_player = play_get_player(postman, &arguments);
 	// @TODO: target_player discards hand, draws new card
 	// Run `discard` for the card in their hand. `out` describes the
 	// cards in a player hand as well.
@@ -466,14 +411,15 @@ void played_wizard(struct postman *postman, struct player *target_player)
 	//fprintf(target_player->stdin, "draw %s\n", );
 }
 
-void played_priestess(struct postman *postman)
+void played_priestess(struct postman *postman, char *arguments)
 {
 	// We unprotect a player each time their turn comes up.
 	postman->current_player->protected = 1;
 }
 
-void played_knight(struct postman *postman, struct player *target_player)
+void played_knight(struct postman *postman, char *arguments)
 {
+	struct player *target_player = play_get_player(postman, &arguments);
 	// @TODO: Internally compare value of card in each player's hand,
 	// `out` iff one player scores lower than other.
 	int current_score = postman->current_player->hand[0]->character->score;
@@ -504,14 +450,17 @@ void played_knight(struct postman *postman, struct player *target_player)
 	}
 }
 
-void played_clown(struct postman *postman, struct player *target_player)
+void played_clown(struct postman *postman, char *arguments)
 {
+	struct player *target_player = play_get_player(postman, &arguments);
 	// @TODO: reveal card in target_player hand to current_player only.
 	fprintf(postman->current_player->pipexec->stdin, "reveal %s\n", target_player->hand[0]->character->name);
 }
 
-void played_soldier(struct postman *postman, struct player *target_player, struct character *target_character)
+void played_soldier(struct postman *postman, char *arguments)
 {
+	struct player *target_player = play_get_player(postman, &arguments);
+	struct character *target_character = play_get_character(postman, &arguments);
 	// @TODO: check if target_player has target_character card. If they
 	// do have the card, `out`.
 	if (target_player->hand[0]->character == target_character)
