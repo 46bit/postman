@@ -16,6 +16,7 @@ struct postman {
 	struct card *cards;
 
 	int players_count;
+	int first_player_index;
 	struct player *players;
 	struct player *current_player;
 };

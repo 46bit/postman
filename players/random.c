@@ -24,25 +24,39 @@ int main()
 		{1, "Soldier", 5}
 	};
 
+	int player_id, first_player_id, players_count;
+
 	struct timeval time;
 	gettimeofday(&time, NULL);
 	long microsec = ((unsigned long long)time.tv_sec * 1000000) + time.tv_usec;
 	srand(microsec);
 
-	printf("Hello World\n");
-	fflush(stdout);
 	char play[31];
 	int has_been_drawn = 0;
 	char *hand[2];
+
 	while (fgets(play, 31, stdin))
 	{
-		strtok(play, "\n");
-		strtok(play, " ");
+		strtok(play, " \n");
+
+		if (strcmp(play, "ident") == 0)
+		{
+			strtok(play+6, "\n ");
+			player_id = *(play+6) - '0';
+			strtok(play+8, "\n ");
+			first_player_id = *(play+8) - '0';
+			strtok(play+10, "\n ");
+			players_count = *(play+10) - '0';
+
+			printf("Hello World\n");
+			fflush(stdout);
+		}
 
 		if (strcmp(play, "draw") == 0 || strcmp(play, "swap") == 0)
 		{
 			if (has_been_drawn == 0)
 			{
+				strtok(play+5, " \n");
 				char *item = malloc(strlen(play+5) + 1);
 				strcpy(item, play+5);
 				hand[0] = item;
@@ -50,6 +64,7 @@ int main()
 				continue;
 			}
 
+			strtok(play+5, " \n");
 			char *item = malloc(strlen(play+5) + 1);
 			strcpy(item, play+5);
 			hand[1] = item;
@@ -60,16 +75,13 @@ int main()
 				if (strcmp(character_name, "Princess") == 0
 					|| strcmp(character_name, "Minister") == 0
 					|| strcmp(character_name, "Priestess") == 0) {
-					//fprintf(stderr, "play %s\n", character_name);
 					printf("play %s\n", character_name);
 				} else {
-					int target_player_index = rand() % 4;
+					int target_player_index = rand() % players_count;
 					if (strcmp(character_name, "Soldier") != 0) {
-						//fprintf(stderr, "play %s %d\n", character_name, target_player_index);
 						printf("play %s %d\n", character_name, target_player_index);
 					} else {
 						char *target_character_name = characters[rand() % characters_count].name;
-						//fprintf(stderr, "play %s %d %s\n", character_name, target_player_index, target_character_name);
 						printf("play %s %d %s\n", character_name, target_player_index, target_character_name);
 					}
 				}
