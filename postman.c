@@ -36,7 +36,7 @@ struct postman *postman_init(int players_count, char **programs)
 	postman->characters[7] = (struct character) {1, "Soldier", 5};
 
 	// Setup game cards from characters
-	postman->cards_count = character_cards_init(postman);
+	character_cards_init(postman);
 	postman->cards_drawn = 0;
 
 	// Setup game players as provided in argv
@@ -46,14 +46,16 @@ struct postman *postman_init(int players_count, char **programs)
 	return postman;
 }
 
-int character_cards_init(struct postman *postman)
+void character_cards_init(struct postman *postman)
 {
 	struct character *current_character;
-	int i, cards_length = 0;
+
+	int i;
+	postman->cards_count = 0;
 	for (i = 0; i < postman->characters_count; i++)
 	{
 		current_character = &postman->characters[i];
-		cards_length += current_character->cards_count;
+		postman->cards_count += current_character->cards_count;
 	}
 
 	postman->cards = malloc(postman->cards_count * sizeof(struct card));
@@ -67,15 +69,10 @@ int character_cards_init(struct postman *postman)
 		{
 			struct card *current_card = &postman->cards[card_index];
 			current_card->character = current_character;
-			printf("%d vs %d for %d vs %d and '%s' vs '%s'\n", current_card, postman->cards[0], current_card->character, postman->cards[0].character, current_card->character->name, postman->cards[0].character->name);
 			current_card->player = NULL;
 			card_index++;
 		}
 	}
-
-	printf("charname %s\n", postman->cards[0].character->name);
-
-	return cards_length;
 }
 
 void players_init(struct postman *postman, char **programs)
@@ -136,7 +133,6 @@ void play_game(struct postman *postman)
 	int current_player_index = 0, initial_cards_drawn = 0;
 	while ((picked_card = choose_card(postman)) != NULL)
 	{
-		printf("fsd\n");
 		// Check we have at least 2 players not out. End game if appropriate.
 		int p, active_players_count = 0;
 		for (p = 0; p < postman->players_count; p++)
@@ -186,15 +182,12 @@ void play_game(struct postman *postman)
 struct card *choose_card(struct postman *postman)
 {
 	struct card *chosen_card = NULL;
-	printf("bcd %d %d\n", postman->cards_drawn, postman->cards_count);
 	if (postman->cards_drawn < postman->cards_count)
 	{
 		while (1)
 		{
 			int chosen_card_index = rand() % postman->cards_count;
 			chosen_card = &postman->cards[chosen_card_index];
-			printf("abc %d %d\n", chosen_card_index, chosen_card);
-			printf("%d\n", chosen_card->character);
 			if (chosen_card->player == NULL)
 			{
 				break;

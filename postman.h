@@ -53,7 +53,7 @@ int main(int argc, char *argv[]);
 
 struct postman *postman_init(int players_count, char **programs);
 
-int character_cards_init(struct postman *postman);
+void character_cards_init(struct postman *postman);
 
 void players_init(struct postman *postman, char **programs);
 
