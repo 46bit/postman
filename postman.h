@@ -64,9 +64,11 @@ void play_game(struct postman *postman);
 
 struct card *choose_card(struct postman *postman);
 
-void player_draw(struct postman *postman, struct card *current_card);
+void player_turn(struct postman *postman);
 
-int player_move(struct postman *postman);
+void player_draw(struct postman *postman, struct player *player, struct card *current_card);
+
+void player_move(struct postman *postman);
 
 struct character *player_played_character(struct postman *postman, char *character_name);
 

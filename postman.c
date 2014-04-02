@@ -161,12 +161,11 @@ void play_game(struct postman *postman)
 			postman->current_player->protected = 0;
 			postman->cards_drawn++;
 
-			player_draw(postman, picked_card);
-			if (initial_cards_drawn && player_move(postman) == -1)
+			player_turn(postman);
+			player_draw(postman, postman->current_player, picked_card);
+			if (initial_cards_drawn)
 			{
-				// @TODO: player did an invalid move, forfeit the game.
-				printf("\n(player_move) Player %s did an invalid move.\n", postman->current_player->name);
-				postman->current_player->playing = 0;
+				player_move(postman);
 			}
 		} else {
 			#if DEBUG==1
@@ -204,23 +203,9 @@ struct card *choose_card(struct postman *postman)
 	return chosen_card;
 }
 
-void player_draw(struct postman *postman, struct card *current_card)
+void player_turn(struct postman *postman)
 {
-	// Assign the drawn card to the player. Update their hand.
-	current_card->player = postman->current_player;
-	if (postman->current_player->hand[0] == NULL) {
-		postman->current_player->hand[0] = current_card;
-	} else {
-		postman->current_player->hand[1] = current_card;
-	}
-
-	#if DEBUG==1
-		printf("\nplayer %d\n", postman->current_player->index);
-		printf("draw %s\n", current_card->character->name);
-	#endif
-
-	// Tell all players whose turn it is, and tell the current player what card they
-	// have drawn.
+	// Tell all players whose turn it is.
 	int p;
 	for (p = 0; p < postman->players_count; p++)
 	{
@@ -229,14 +214,30 @@ void player_draw(struct postman *postman, struct card *current_card)
 			fprintf(postman->players[p].pipexec->stdin, "player %d\n", postman->current_player->index);
 		}
 	}
-	fprintf(postman->current_player->pipexec->stdin, "draw %s\n", current_card->character->name);
-	fflush(postman->current_player->pipexec->stdin);
 }
 
-int player_move(struct postman *postman)
+void player_draw(struct postman *postman, struct player *player, struct card *current_card)
 {
-	int valid = -1;
+	// Assign the drawn card to the player. Update their hand.
+	current_card->player = player;
+	if (player->hand[0] == NULL) {
+		player->hand[0] = current_card;
+	} else {
+		player->hand[1] = current_card;
+	}
 
+	#if DEBUG==1
+		printf("\nplayer %d\n", player->index);
+		printf("draw %s\n", current_card->character->name);
+	#endif
+
+	// Tell the current player what card they have drawn.
+	fprintf(player->pipexec->stdin, "draw %s\n", current_card->character->name);
+	fflush(player->pipexec->stdin);
+}
+
+void player_move(struct postman *postman)
+{
 	// Now we have drawn the player a card on their turn, get player move from stdout.
 	char ai_move[31];
 	fgets(ai_move, 31, postman->current_player->pipexec->stdout);
@@ -247,14 +248,12 @@ int player_move(struct postman *postman)
 
 	// Forfeit if chosen.
 	if (strcmp(ai_move, "forfeit") == 0) {
-		valid = 1;
 		forfeit_player(postman, postman->current_player);
+		return;
 	}
 
 	// Parse out play action if chosen.
 	if (strcmp(ai_move, "play") == 0) {
-		valid = 1;
-
 		// Print played move.
 		char *ai_move_location = ai_move + 5;
 		#if DEBUG==1
@@ -278,9 +277,11 @@ int player_move(struct postman *postman)
 		{
 			played_character->play_handler(postman, ai_move_location);
 		}
+		return;
 	}
 
-	return valid;
+	// If we failed to parse the player's response, they forfeit.
+	forfeit_player(postman, postman->current_player);
 }
 
 struct character *player_played_character(struct postman *postman, char *character_name)
@@ -385,6 +386,7 @@ void played_princess(struct postman *postman, char *arguments)
 void played_general(struct postman *postman, char *arguments)
 {
 	struct player *target_player = play_get_player(postman, &arguments);
+
 	if (target_player->playing && !target_player->protected)
 	{
 		fprintf(postman->current_player->pipexec->stdin, "swap %s\n", target_player->hand[0]->character->name);
@@ -402,13 +404,20 @@ void played_general(struct postman *postman, char *arguments)
 void played_wizard(struct postman *postman, char *arguments)
 {
 	struct player *target_player = play_get_player(postman, &arguments);
-	// @TODO: target_player discards hand, draws new card
+
+	// Target_player discards hand, draws new card.
 	// Run `discard` for the card in their hand. `out` describes the
 	// cards in a player hand as well.
-	// @TODO: Tidy drawing new card into routine that doesn't need 15
-	// lines of code here.
-	//fprintf(target_player->stdin, "discard %s\n", target_player->hand[0]->character->name);
-	//fprintf(target_player->stdin, "draw %s\n", );
+	fprintf(target_player->pipexec->stdin, "discard %s\n", target_player->hand[0]->character->name);
+	struct card *replacement_card = choose_card(postman);
+	if (replacement_card == NULL)
+	{
+		// @TODO: What to do if the player is forced to discard when no cards remain?
+		// Can happen when one player has had final turn and others have not.
+	} else {
+		postman->cards_drawn++;
+		player_draw(postman, target_player, replacement_card);
+	}
 }
 
 void played_priestess(struct postman *postman, char *arguments)
@@ -420,7 +429,8 @@ void played_priestess(struct postman *postman, char *arguments)
 void played_knight(struct postman *postman, char *arguments)
 {
 	struct player *target_player = play_get_player(postman, &arguments);
-	// @TODO: Internally compare value of card in each player's hand,
+
+	// Internally compare value of card in each player's hand,
 	// `out` iff one player scores lower than other.
 	int current_score = postman->current_player->hand[0]->character->score;
 	int target_score = target_player->hand[0]->character->score;
@@ -453,7 +463,8 @@ void played_knight(struct postman *postman, char *arguments)
 void played_clown(struct postman *postman, char *arguments)
 {
 	struct player *target_player = play_get_player(postman, &arguments);
-	// @TODO: reveal card in target_player hand to current_player only.
+
+	// Reveal card in target_player hand to current_player only.
 	fprintf(postman->current_player->pipexec->stdin, "reveal %s\n", target_player->hand[0]->character->name);
 }
 
@@ -461,7 +472,8 @@ void played_soldier(struct postman *postman, char *arguments)
 {
 	struct player *target_player = play_get_player(postman, &arguments);
 	struct character *target_character = play_get_character(postman, &arguments);
-	// @TODO: check if target_player has target_character card. If they
+
+	// Check if target_player has target_character card. If they
 	// do have the card, `out`.
 	if (target_player->hand[0]->character == target_character)
 	{
@@ -500,12 +512,12 @@ void score_game(struct postman *postman)
 
 void cleanup_game(struct postman *postman)
 {
+	// End and free players.
 	int i;
 	for (i = 0; i < postman->players_count; i++)
 	{
 		postman->current_player = &postman->players[i];
 
-		// @TODO: Do we need to kill the pipexec->stdin_pipe and pipexec->stdout_pipe?
 		kill(postman->current_player->pipexec->pid, SIGTERM);
 		fclose(postman->current_player->pipexec->stdin);
 		fclose(postman->current_player->pipexec->stdout);
