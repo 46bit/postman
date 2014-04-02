@@ -382,6 +382,18 @@ void forfeit_player(struct postman *postman, struct player *target_player)
 	target_player->playing = 0;
 }
 
+void tell_all_player_was_princessed(struct postman *postman, struct player *target_player)
+{
+	#if DEBUG==1
+		printf("protected %d\n", target_player->index);
+	#endif
+	int p;
+	for (p = 0; p < postman->players_count; p++)
+	{
+		fprintf(postman->players[p].pipexec->stdin, "protected %d\n", target_player->index);
+	}
+}
+
 void played_princess(struct postman *postman, char *arguments)
 {
 	forfeit_player(postman, postman->current_player);
@@ -399,34 +411,36 @@ void played_general(struct postman *postman, char *arguments)
 		postman->current_player->hand[0] = target_player->hand[0];
 		target_player->hand[0] = temp_card;
 	} else {
-		// @TODO: handle case where target player is out or has played a
-		// Priestess. What do we send to the players to describe this
-		// situation?
+		tell_all_player_was_princessed(postman, target_player);
 	}
 }
 
 void played_wizard(struct postman *postman, char *arguments)
 {
 	struct player *target_player = play_get_player(postman, &arguments);
-
-	// The target player must discard their hand and draw a new card.
-	// Run `discard` for the card in their hand, revealing it to all.
-	int p;
-	for (p = 0; p < postman->players_count; p++)
+	if (target_player->playing && !target_player->protected)
 	{
-		fprintf(postman->players[p].pipexec->stdin, "discard %d %s\n", postman->players[p].index, postman->players[p].hand[0]->character->name);
-	}
+		// The target player must discard their hand and draw a new card.
+		// Run `discard` for the card in their hand, revealing it to all.
+		int p;
+		for (p = 0; p < postman->players_count; p++)
+		{
+			fprintf(postman->players[p].pipexec->stdin, "discard %d %s\n", postman->players[p].index, postman->players[p].hand[0]->character->name);
+		}
 
-	// Draw a new card for the target player.
-	struct card *replacement_card = choose_card(postman);
-	if (replacement_card == NULL)
-	{
-		// If the player is forced to discard when no cards remain, they're out.
-		// Can happen when one player has had final turn and others have not.
-		forfeit_player(postman, target_player);
+		// Draw a new card for the target player.
+		struct card *replacement_card = choose_card(postman);
+		if (replacement_card == NULL)
+		{
+			// If the player is forced to discard when no cards remain, they're out.
+			// Can happen when one player has had final turn and others have not.
+			forfeit_player(postman, target_player);
+		} else {
+			postman->cards_drawn++;
+			player_draw(postman, target_player, replacement_card);
+		}
 	} else {
-		postman->cards_drawn++;
-		player_draw(postman, target_player, replacement_card);
+		tell_all_player_was_princessed(postman, target_player);
 	}
 }
 
@@ -440,33 +454,38 @@ void played_knight(struct postman *postman, char *arguments)
 {
 	struct player *target_player = play_get_player(postman, &arguments);
 
-	// Internally compare value of card in each player's hand,
-	// `out` iff one player scores lower than other.
-	int current_score = postman->current_player->hand[0]->character->score;
-	int target_score = target_player->hand[0]->character->score;
-	struct player *out_player = NULL;
-	if (current_score < target_score)
+	if (target_player->playing && !target_player->protected)
 	{
-		out_player = postman->current_player;
-	} else if (target_score < current_score) {
-		out_player = target_player;
-	} else {
-		// @TODO: what to send to bots when the Knight is a draw?
-	}
-	if (out_player != NULL)
-	{
-		out_player->playing = 0;
-		#if DEBUG==1
-			printf("out %d %s\n", out_player->index, out_player->hand[0]->character->name);
-		#endif
-		int p;
-		for (p = 0; p < postman->players_count; p++)
+		// Internally compare value of card in each player's hand,
+		// `out` iff one player scores lower than other.
+		int current_score = postman->current_player->hand[0]->character->score;
+		int target_score = target_player->hand[0]->character->score;
+		struct player *out_player = NULL;
+		if (current_score < target_score)
 		{
-			if (postman->players[p].playing)
+			out_player = postman->current_player;
+		} else if (target_score < current_score) {
+			out_player = target_player;
+		} else {
+			// @TODO: what to send to bots when the Knight is a draw?
+		}
+		if (out_player != NULL)
+		{
+			out_player->playing = 0;
+			#if DEBUG==1
+				printf("out %d %s\n", out_player->index, out_player->hand[0]->character->name);
+			#endif
+			int p;
+			for (p = 0; p < postman->players_count; p++)
 			{
-				fprintf(postman->players[p].pipexec->stdin, "out %d %s\n", out_player->index, out_player->hand[0]->character->name);
+				if (postman->players[p].playing)
+				{
+					fprintf(postman->players[p].pipexec->stdin, "out %d %s\n", out_player->index, out_player->hand[0]->character->name);
+				}
 			}
 		}
+	} else {
+		tell_all_player_was_princessed(postman, target_player);
 	}
 }
 
@@ -474,8 +493,13 @@ void played_clown(struct postman *postman, char *arguments)
 {
 	struct player *target_player = play_get_player(postman, &arguments);
 
-	// Reveal card in target_player hand to current_player only.
-	fprintf(postman->current_player->pipexec->stdin, "reveal %s\n", target_player->hand[0]->character->name);
+	if (target_player->playing && !target_player->protected)
+	{
+		// Reveal card in target_player hand to current_player only.
+		fprintf(postman->current_player->pipexec->stdin, "reveal %s\n", target_player->hand[0]->character->name);
+	} else {
+		tell_all_player_was_princessed(postman, target_player);
+	}
 }
 
 void played_soldier(struct postman *postman, char *arguments)
@@ -483,22 +507,27 @@ void played_soldier(struct postman *postman, char *arguments)
 	struct player *target_player = play_get_player(postman, &arguments);
 	struct character *target_character = play_get_character(postman, &arguments);
 
-	// Check if target_player has target_character card. If they
-	// do have the card, `out`.
-	if (target_player->hand[0]->character == target_character)
+	if (target_player->playing && !target_player->protected)
 	{
-		target_player->playing = 0;
-		#if DEBUG==1
-			printf("out %d %s\n", target_player->index, target_player->hand[0]->character->name);
-		#endif
-		int p;
-		for (p = 0; p < postman->players_count; p++)
+		// Check if target_player has target_character card. If they
+		// do have the card, `out`.
+		if (target_player->hand[0]->character == target_character)
 		{
-			if (postman->players[p].playing)
+			target_player->playing = 0;
+			#if DEBUG==1
+				printf("out %d %s\n", target_player->index, target_player->hand[0]->character->name);
+			#endif
+			int p;
+			for (p = 0; p < postman->players_count; p++)
 			{
-				fprintf(postman->players[p].pipexec->stdin, "out %d %s\n", target_player->index, target_player->hand[0]->character->name);
+				if (postman->players[p].playing)
+				{
+					fprintf(postman->players[p].pipexec->stdin, "out %d %s\n", target_player->index, target_player->hand[0]->character->name);
+				}
 			}
 		}
+	} else {
+		tell_all_player_was_princessed(postman, target_player);
 	}
 }
 

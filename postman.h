@@ -82,6 +82,8 @@ struct character *play_get_character(struct postman *postman, char **arguments);
 
 void forfeit_player(struct postman *postman, struct player *target_player);
 
+void tell_all_player_was_princessed(struct postman *postman, struct player *target_player);
+
 void played_princess(struct postman *postman, char *arguments);
 
 void played_general(struct postman *postman, char *arguments);
