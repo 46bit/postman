@@ -23,7 +23,7 @@ struct postman {
 struct character {
 	int score;
 	char *name;
-	int cards;
+	int cards_count;
 };
 
 struct card {

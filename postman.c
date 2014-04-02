@@ -24,18 +24,16 @@ struct postman *postman_init(int players_count, char **programs)
 	struct postman *postman = malloc(sizeof(struct postman));
 
 	// Setup game characters
-	struct character characters[8] = {
-		{8, "Princess", 1},
-		{7, "Minister", 1},
-		{6, "General", 1},
-		{5, "Wizard", 2},
-		{4, "Priestess", 2},
-		{3, "Knight", 2},
-		{2, "Clown", 2},
-		{1, "Soldier", 5}
-	};
 	postman->characters_count = 8;
-	postman->characters = &characters[0];
+	postman->characters = malloc(postman->characters_count * sizeof(struct character));
+	postman->characters[0] = (struct character) {8, "Princess", 1};
+	postman->characters[1] = (struct character) {7, "Minister", 1};
+	postman->characters[2] = (struct character) {6, "General", 1};
+	postman->characters[3] = (struct character) {5, "Wizard", 2};
+	postman->characters[4] = (struct character) {4, "Priestess", 2};
+	postman->characters[5] = (struct character) {3, "Knight", 2};
+	postman->characters[6] = (struct character) {2, "Clown", 2};
+	postman->characters[7] = (struct character) {1, "Soldier", 5};
 
 	// Setup game cards from characters
 	postman->cards_count = character_cards_init(postman);
@@ -55,7 +53,7 @@ int character_cards_init(struct postman *postman)
 	for (i = 0; i < postman->characters_count; i++)
 	{
 		current_character = &postman->characters[i];
-		cards_length += current_character->cards;
+		cards_length += current_character->cards_count;
 	}
 
 	postman->cards = malloc(postman->cards_count * sizeof(struct card));
@@ -65,14 +63,17 @@ int character_cards_init(struct postman *postman)
 	{
 		current_character = &postman->characters[i];
 		int character_card_index;
-		for (character_card_index = 0; character_card_index < current_character->cards; character_card_index++)
+		for (character_card_index = 0; character_card_index < current_character->cards_count; character_card_index++)
 		{
 			struct card *current_card = &postman->cards[card_index];
 			current_card->character = current_character;
+			printf("%d vs %d for %d vs %d and '%s' vs '%s'\n", current_card, postman->cards[0], current_card->character, postman->cards[0].character, current_card->character->name, postman->cards[0].character->name);
 			current_card->player = NULL;
 			card_index++;
 		}
 	}
+
+	printf("charname %s\n", postman->cards[0].character->name);
 
 	return cards_length;
 }
@@ -191,9 +192,9 @@ struct card *choose_card(struct postman *postman)
 		while (1)
 		{
 			int chosen_card_index = rand() % postman->cards_count;
-			struct card *cards = postman->cards;
-			chosen_card = &cards[chosen_card_index];
-			printf("abc %d %s\n", chosen_card, (char*)choose_card->character->name);
+			chosen_card = &postman->cards[chosen_card_index];
+			printf("abc %d %d\n", chosen_card_index, chosen_card);
+			printf("%d\n", chosen_card->character);
 			if (chosen_card->player == NULL)
 			{
 				break;
