@@ -405,15 +405,21 @@ void played_wizard(struct postman *postman, char *arguments)
 {
 	struct player *target_player = play_get_player(postman, &arguments);
 
-	// Target_player discards hand, draws new card.
-	// Run `discard` for the card in their hand. `out` describes the
-	// cards in a player hand as well.
-	fprintf(target_player->pipexec->stdin, "discard %s\n", target_player->hand[0]->character->name);
+	// The target player must discard their hand and draw a new card.
+	// Run `discard` for the card in their hand, revealing it to all.
+	int p;
+	for (p = 0; p < postman->players_count; p++)
+	{
+		fprintf(postman->players[p].pipexec->stdin, "discard %d %s\n", postman->players[p].index, postman->players[p].hand[0]->character->name);
+	}
+
+	// Draw a new card for the target player.
 	struct card *replacement_card = choose_card(postman);
 	if (replacement_card == NULL)
 	{
-		// @TODO: What to do if the player is forced to discard when no cards remain?
+		// If the player is forced to discard when no cards remain, they're out.
 		// Can happen when one player has had final turn and others have not.
+		forfeit_player(postman, target_player);
 	} else {
 		postman->cards_drawn++;
 		player_draw(postman, target_player, replacement_card);
