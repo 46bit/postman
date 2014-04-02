@@ -7,6 +7,30 @@
 #include <sys/types.h>
 #include <signal.h>
 
+struct postman {
+	int characters_count;
+	struct character *characters;
+
+	int cards_count;
+	int cards_drawn;
+	struct card *cards;
+
+	int players_count;
+	struct player *players;
+	struct player *current_player;
+};
+
+struct character {
+	int score;
+	char *name;
+	int cards;
+};
+
+struct card {
+	struct character *character;
+	struct player *player;
+};
+
 struct pipexec {
 	char *program;
 	pid_t pid;
@@ -21,40 +45,50 @@ struct player {
 	int playing;
 	int protected;
 	char *name;
-	char *program;
 	struct card **hand;
-	pid_t pid;
-	FILE *stdin;
-	FILE *stdout;
-};
-
-struct character {
-	int score;
-	char *name;
-	int cards;
-};
-
-struct card {
-	struct character *character;
-	struct player *player;
+	struct pipexec *pipexec;
 };
 
 int main(int argc, char *argv[]);
 
-int character_cards_init(int characters_length, struct character *characters, struct card **cards);
+struct postman *postman_init();
 
-void players_init(int player_count, struct player *players, char **programs);
+int character_cards_init(struct postman *postman);
+
+void players_init(struct postman *postman, char **programs);
 
 struct pipexec *new_pipexec(char *program);
 
-struct card *choose_card(struct card *cards, int cards_drawn, int cards_length);
+void play_game(struct postman *postman);
 
-void player_draw(int player_count, struct player *players, struct player *current_player, struct card *current_card);
+struct card *choose_card(struct postman *postman);
 
-int player_move(struct player *current_player, int player_count, struct player *players, int character_count, struct character *characters);
+void player_draw(struct postman *postman, struct card *current_card);
 
-struct character *player_played_character(struct player *current_player, char *character_name);
+int player_move(struct postman *postman);
 
-struct player *player_targeted_player(struct player *players, char *player_index_chars);
+struct character *player_played_character(struct postman *postman, char *character_name);
 
-struct character *player_targeted_character(int character_count, struct character *characters, char *character_name);
+struct player *player_targeted_player(struct postman *postman, char *player_index_chars);
+
+struct character *player_targeted_character(struct postman *postman, char *character_name);
+
+void forfeit_player(struct postman *postman, struct player *target_player);
+
+void played_princess(struct postman *postman);
+
+void played_general(struct postman *postman, struct player *target_player);
+
+void played_wizard(struct postman *postman, struct player *target_player);
+
+void played_priestess(struct postman *postman);
+
+void played_knight(struct postman *postman, struct player *target_player);
+
+void played_clown(struct postman *postman, struct player *target_player);
+
+void played_soldier(struct postman *postman, struct player *target_player, struct character *target_character);
+
+void score_game(struct postman *postman);
+
+void cleanup_game(struct postman *postman);
