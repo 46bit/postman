@@ -50,6 +50,7 @@ void character_cards_init(struct postman *postman)
 {
 	struct character *current_character;
 
+	// Count how many cards we need across all the characters.
 	int i;
 	postman->cards_count = 0;
 	for (i = 0; i < postman->characters_count; i++)
@@ -60,6 +61,7 @@ void character_cards_init(struct postman *postman)
 
 	postman->cards = malloc(postman->cards_count * sizeof(struct card));
 
+	// Setup all the cards for each character.
 	int card_index = 0;
 	for (i = 0; i < postman->characters_count; i++)
 	{
@@ -82,15 +84,16 @@ void players_init(struct postman *postman, char **programs)
 	int i;
 	for (i = 0; i < postman->players_count; i++)
 	{
-		// Fork off the player program then save pid/stdin/stdout for our use.
+		// Initialise the player.
 		struct player *current_player = &postman->players[i];
 		current_player->index = i;
 		current_player->playing = 1;
 		current_player->protected = 0;
-
-		current_player->pipexec = new_pipexec(programs[i]);
 		current_player->hand = malloc(2 * sizeof(*current_player->hand));
 		current_player->hand[0] = current_player->hand[1] = NULL;
+
+		// Fork off the player program, getting access to pid/stdin/stdout.
+		current_player->pipexec = new_pipexec(programs[i]);
 
 		// Get name of player as it output on stdout.
 		char ai_name[31];
@@ -105,6 +108,7 @@ void players_init(struct postman *postman, char **programs)
 
 struct pipexec *new_pipexec(char *program)
 {
+	// Setup pipes for hooking on stdin/stdout.
 	struct pipexec *p = malloc(sizeof(struct pipexec));
 	pid_t stdin_pipe[2], stdout_pipe[2];
 	if (pipe(stdin_pipe) || pipe(stdout_pipe))
@@ -112,6 +116,7 @@ struct pipexec *new_pipexec(char *program)
 		return NULL;
 	}
 
+	// Fork off, setup pipes, execute Player program and save file handles for usage.
 	p->program = program;
 	pid_t pid = fork();
 	if (pid == 0)
@@ -182,8 +187,10 @@ void play_game(struct postman *postman)
 struct card *choose_card(struct postman *postman)
 {
 	struct card *chosen_card = NULL;
+	// If we've drawn all our cards, return NULL.
 	if (postman->cards_drawn < postman->cards_count)
 	{
+		// Loop around until we pick a card that hasn't been drawn already.
 		while (1)
 		{
 			int chosen_card_index = rand() % postman->cards_count;
@@ -199,8 +206,8 @@ struct card *choose_card(struct postman *postman)
 
 void player_draw(struct postman *postman, struct card *current_card)
 {
+	// Assign the drawn card to the player. Update their hand.
 	current_card->player = postman->current_player;
-
 	if (postman->current_player->hand[0] == NULL) {
 		postman->current_player->hand[0] = current_card;
 	} else {
@@ -212,6 +219,8 @@ void player_draw(struct postman *postman, struct card *current_card)
 		printf("draw %s\n", current_card->character->name);
 	#endif
 
+	// Tell all players whose turn it is, and tell the current player what card they
+	// have drawn.
 	int p;
 	for (p = 0; p < postman->players_count; p++)
 	{
@@ -347,6 +356,8 @@ int player_move(struct postman *postman)
 
 struct character *player_played_character(struct postman *postman, char *character_name)
 {
+	// If player picks a character we don't think is in their hand, return NULL.
+	// Otherwise update their hand to just contain the unplayed card.
 	struct character *c = NULL;
 	if (postman->current_player->hand[0] != NULL && strcmp(postman->current_player->hand[0]->character->name, character_name) == 0)
 	{
@@ -363,6 +374,7 @@ struct character *player_played_character(struct postman *postman, char *charact
 
 struct player *player_targeted_player(struct postman *postman, char *player_index_chars)
 {
+	// Parse out the player index to target, return that player.
 	struct player *p = NULL;
 	int player_index = (*player_index_chars - '0');
 	if (player_index >= 0 && player_index < 4) {
@@ -373,6 +385,7 @@ struct player *player_targeted_player(struct postman *postman, char *player_inde
 
 struct character *player_targeted_character(struct postman *postman, char *character_name)
 {
+	// Find the targeted character (only relevant for Soldier).
 	struct character *c = NULL;
 	int i;
 	for (i = 0; i < postman->characters_count; i++)
@@ -388,10 +401,11 @@ struct character *player_targeted_character(struct postman *postman, char *chara
 
 void forfeit_player(struct postman *postman, struct player *target_player)
 {
-	target_player->playing = 0;
 	#if DEBUG==1
 		printf("out %d %s\n", target_player->index, target_player->hand[0]->character->name);
 	#endif
+
+	// Tell all playing players this one is out, then mark as not playing.
 	int p;
 	for (p = 0; p < postman->players_count; p++)
 	{
@@ -400,22 +414,12 @@ void forfeit_player(struct postman *postman, struct player *target_player)
 			fprintf(postman->players[p].pipexec->stdin, "out %d %s\n", target_player->index, target_player->hand[0]->character->name);
 		}
 	}
+	target_player->playing = 0;
 }
 
 void played_princess(struct postman *postman)
 {
-	postman->current_player->playing = 0;
-	#if DEBUG==1
-		printf("out %d %s\n", postman->current_player->index, postman->current_player->hand[0]->character->name);
-	#endif
-	int p;
-	for (p = 0; p < postman->players_count; p++)
-	{
-		if (postman->players[p].playing)
-		{
-			fprintf(postman->players[p].pipexec->stdin, "out %d %s\n", postman->current_player->index, postman->current_player->hand[0]->character->name);
-		}
-	}
+	forfeit_player(postman, postman->current_player);
 }
 
 void played_general(struct postman *postman, struct player *target_player)
