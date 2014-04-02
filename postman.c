@@ -36,8 +36,8 @@ struct postman *postman_init(int players_count, char **programs)
 	postman->characters[7] = (struct character) {1, "Soldier", 5};
 
 	// Setup game cards from characters
-	character_cards_init(postman);
 	postman->cards_drawn = 0;
+	character_cards_init(postman);
 
 	// Setup game players as provided in argv
 	postman->players_count = players_count;
@@ -535,14 +535,18 @@ void cleanup_game(struct postman *postman)
 	{
 		postman->current_player = &postman->players[i];
 
+		// @TODO: Do we need to kill the pipexec->stdin_pipe and pipexec->stdout_pipe?
 		kill(postman->current_player->pipexec->pid, SIGTERM);
-		free(postman->current_player->pipexec);
-		free(postman->current_player->hand);
-		free(postman->current_player->name);
 		fclose(postman->current_player->pipexec->stdin);
 		fclose(postman->current_player->pipexec->stdout);
+		free(postman->current_player->pipexec);
+
+		free(postman->current_player->hand);
+		free(postman->current_player->name);
 	}
 	free(postman->players);
+
+	free(postman->characters);
 	free(postman->cards);
 	free(postman);
 }
