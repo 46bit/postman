@@ -388,18 +388,20 @@ void tell_all_player_was_princessed(struct postman *postman, struct player *targ
 
 void fprintf_all(struct postman *postman, const char *format, ...)
 {
-	va_list arg;
-	va_start(arg, format);
 	int p;
 	for (p = 0; p < postman->players_count; p++)
 	{
 		if (postman->players[p].playing)
 		{
+			// Setting up variadic args for each player is wasteful, but the other
+			// methods generally cause fflush to sigfault on Mac.
+			va_list arg;
+			va_start(arg, format);
 			vfprintf(postman->players[p].pipexec->stdin, format, arg);
+			va_end(arg);
 			fflush(postman->players[p].pipexec->stdin);
 		}
 	}
-	va_end(arg);
 }
 
 void played_princess(struct postman *postman, char *arguments)
