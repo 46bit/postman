@@ -388,26 +388,18 @@ void tell_all_player_was_princessed(struct postman *postman, struct player *targ
 
 void fprintf_all(struct postman *postman, const char *format, ...)
 {
-	printf("fprintf_all1\n");
-
-	//vfprintf(stdout, format, arg);
-	printf("%s\n", format);
+	va_list arg;
+	va_start(arg, format);
 	int p;
 	for (p = 0; p < postman->players_count; p++)
 	{
-		va_list arg;
-		va_start(arg, format);
 		if (postman->players[p].playing)
 		{
-			printf("vfprintf %d %d\n", p, strlen(format));
-			vfprintf(stdout, format, arg);
 			vfprintf(postman->players[p].pipexec->stdin, format, arg);
 			fflush(postman->players[p].pipexec->stdin);
-			printf("vfprintf %d %d\n", p, strlen(format));
 		}
-		va_end(arg);
 	}
-	printf("fprintf_all2\n");
+	va_end(arg);
 }
 
 void played_princess(struct postman *postman, char *arguments)
