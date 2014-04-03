@@ -192,6 +192,10 @@ void play_game(struct postman *postman)
 		current_player_index = (current_player_index + 1) % postman->players_count;
 		if (postman->cards_drawn == postman->players_count) {
 			initial_cards_drawn = 1;
+			#if DEBUG==1
+				printf("\nbegin\n");
+			#endif
+			fprintf_all(postman, "begin\n");
 		}
 	}
 }
@@ -219,15 +223,7 @@ struct card *choose_card(struct postman *postman)
 void player_turn(struct postman *postman)
 {
 	// Tell all players whose turn it is.
-	int p;
-	for (p = 0; p < postman->players_count; p++)
-	{
-		if (postman->players[p].playing)
-		{
-			fprintf(postman->players[p].pipexec->stdin, "player %d\n", postman->current_player->index);
-			fflush(postman->players[p].pipexec->stdin);
-		}
-	}
+	fprintf_all(postman, "player %d\n", postman->current_player->index);
 }
 
 void player_draw(struct postman *postman, struct player *player, struct card *current_card)
@@ -273,15 +269,7 @@ void player_move(struct postman *postman)
 		#if DEBUG==1
 			printf("played %s\n", ai_move_location);
 		#endif
-		int p;
-		for (p = 0; p < postman->players_count; p++)
-		{
-			if (postman->players[p].playing)
-			{
-				fprintf(postman->players[p].pipexec->stdin, "played %s\n", ai_move_location);
-				fflush(postman->players[p].pipexec->stdin);
-			}
-		}
+		fprintf_all(postman, "played %s\n", ai_move_location);
 
 		// Get chosen character.
 		strtok(ai_move_location, "\n ");
@@ -386,15 +374,7 @@ void forfeit_player(struct postman *postman, struct player *target_player)
 	#endif
 
 	// Tell all playing players this one is out, then mark as not playing.
-	int p;
-	for (p = 0; p < postman->players_count; p++)
-	{
-		if (postman->players[p].playing)
-		{
-			fprintf(postman->players[p].pipexec->stdin, "out %d %s\n", target_player->index, target_player->hand[0]->character->name);
-			fflush(postman->players[p].pipexec->stdin);
-		}
-	}
+	fprintf_all(postman, "out %d %s\n", target_player->index, target_player->hand[0]->character->name);
 	target_player->playing = 0;
 }
 
@@ -403,12 +383,31 @@ void tell_all_player_was_princessed(struct postman *postman, struct player *targ
 	#if DEBUG==1
 		printf("protected %d\n", target_player->index);
 	#endif
+	fprintf_all(postman, "protected %d\n", target_player->index);
+}
+
+void fprintf_all(struct postman *postman, const char *format, ...)
+{
+	printf("fprintf_all1\n");
+
+	//vfprintf(stdout, format, arg);
+	printf("%s\n", format);
 	int p;
 	for (p = 0; p < postman->players_count; p++)
 	{
-		fprintf(postman->players[p].pipexec->stdin, "protected %d\n", target_player->index);
-		fflush(postman->players[p].pipexec->stdin);
+		va_list arg;
+		va_start(arg, format);
+		if (postman->players[p].playing)
+		{
+			printf("vfprintf %d %d\n", p, strlen(format));
+			vfprintf(stdout, format, arg);
+			vfprintf(postman->players[p].pipexec->stdin, format, arg);
+			fflush(postman->players[p].pipexec->stdin);
+			printf("vfprintf %d %d\n", p, strlen(format));
+		}
+		va_end(arg);
 	}
+	printf("fprintf_all2\n");
 }
 
 void played_princess(struct postman *postman, char *arguments)
@@ -443,12 +442,7 @@ void played_wizard(struct postman *postman, char *arguments)
 	{
 		// The target player must discard their hand and draw a new card.
 		// Run `discard` for the card in their hand, revealing it to all.
-		int p;
-		for (p = 0; p < postman->players_count; p++)
-		{
-			fprintf(postman->players[p].pipexec->stdin, "discard %d %s\n", postman->players[p].index, postman->players[p].hand[0]->character->name);
-			fflush(postman->players[p].pipexec->stdin);
-		}
+		fprintf_all(postman, "discard %d %s\n", target_player->index, target_player->hand[0]->character->name);
 
 		// Draw a new card for the target player.
 		struct card *replacement_card = choose_card(postman);
@@ -478,6 +472,13 @@ void played_knight(struct postman *postman, char *arguments)
 
 	if (target_player->playing && !target_player->protected)
 	{
+		// Tell both players what the other player's card is. This happens regardless
+		// of whether they or anyone wins.
+		fprintf(postman->current_player->pipexec->stdin, "reveal %d %s\n", target_player->index, target_player->hand[0]->character->name);
+		fflush(postman->current_player->pipexec->stdin);
+		fprintf(target_player->pipexec->stdin, "reveal %d %s\n", postman->current_player->index, postman->current_player->hand[0]->character->name);
+		fflush(target_player->pipexec->stdin);
+
 		// Internally compare value of card in each player's hand,
 		// `out` iff one player scores lower than other.
 		int current_score = postman->current_player->hand[0]->character->score;
@@ -488,24 +489,16 @@ void played_knight(struct postman *postman, char *arguments)
 			out_player = postman->current_player;
 		} else if (target_score < current_score) {
 			out_player = target_player;
-		} else {
-			// @TODO: what to send to bots when the Knight is a draw?
 		}
+
 		if (out_player != NULL)
 		{
 			out_player->playing = 0;
 			#if DEBUG==1
 				printf("out %d %s\n", out_player->index, out_player->hand[0]->character->name);
 			#endif
-			int p;
-			for (p = 0; p < postman->players_count; p++)
-			{
-				if (postman->players[p].playing)
-				{
-					fprintf(postman->players[p].pipexec->stdin, "out %d %s\n", out_player->index, out_player->hand[0]->character->name);
-					fflush(postman->players[p].pipexec->stdin);
-				}
-			}
+
+			fprintf_all(postman, "out %d %s\n", out_player->index, out_player->hand[0]->character->name);
 		}
 	} else {
 		tell_all_player_was_princessed(postman, target_player);
@@ -541,15 +534,7 @@ void played_soldier(struct postman *postman, char *arguments)
 			#if DEBUG==1
 				printf("out %d %s\n", target_player->index, target_player->hand[0]->character->name);
 			#endif
-			int p;
-			for (p = 0; p < postman->players_count; p++)
-			{
-				if (postman->players[p].playing)
-				{
-					fprintf(postman->players[p].pipexec->stdin, "out %d %s\n", target_player->index, target_player->hand[0]->character->name);
-					fflush(postman->players[p].pipexec->stdin);
-				}
-			}
+			fprintf_all(postman, "out %d %s\n", target_player->index, target_player->hand[0]->character->name);
 		}
 	} else {
 		tell_all_player_was_princessed(postman, target_player);

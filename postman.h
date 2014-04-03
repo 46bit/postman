@@ -6,6 +6,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <signal.h>
+#include <stdarg.h>
 
 struct postman {
 	int characters_count;
@@ -84,6 +85,8 @@ struct character *play_get_character(struct postman *postman, char **arguments);
 void forfeit_player(struct postman *postman, struct player *target_player);
 
 void tell_all_player_was_princessed(struct postman *postman, struct player *target_player);
+
+void fprintf_all(struct postman *postman, const char *format, ...);
 
 void played_princess(struct postman *postman, char *arguments);
 
