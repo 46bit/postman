@@ -24,7 +24,7 @@ int main()
 		{1, "Soldier", 5}
 	};
 
-	int player_id, first_player_id, players_count;
+	int player_id, first_player_id, players_count = 4;
 
 	struct timeval time;
 	gettimeofday(&time, NULL);

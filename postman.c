@@ -216,12 +216,11 @@ void player_draw(struct postman *postman, struct player *player, struct card *cu
 	// Assign the drawn card to the player. Update their hand.
 	current_card->player = player;
 
-	int i, assigned = 0;
+	int i;
 	for (i = 0; i < 2; i++)
 	{
 		if (player->hand[i] == NULL)
 		{
-			assigned = 1;
 			player->hand[i] = current_card;
 			break;
 		}
@@ -250,16 +249,12 @@ void player_draw(struct postman *postman, struct player *player, struct card *cu
 
 void player_move(struct postman *postman)
 {
-	int matched = 0;
-
 	// Now we have drawn the player a card on their turn, get player move from stdout.
 	char *ai_move = receive_player(postman->current_player, 30);
 	strtok(ai_move, " ");
 
 	// Forfeit if chosen.
 	if (strcmp(ai_move, "forfeit") == 0) {
-		matched = 1;
-
 		forfeit_player(postman, postman->current_player);
 	}
 
@@ -275,8 +270,6 @@ void player_move(struct postman *postman)
 		// Check the chosen character is in the player's hand.
 		if (postman->current_move->played_character != NULL && remove_character_from_hand(postman->current_player, postman->current_move->played_character) == 0)
 		{
-			matched = 1;
-
 			// Parse according to character's play_fieldmask.
 			int parse_status = parse_play(postman, ai_move_location, postman->current_move->played_character->play_fieldmask);
 			if (parse_status == 0)
@@ -495,6 +488,7 @@ char *receive_player(struct player *player, int length)
 {
 	char *message = malloc(length + 1);
 	fgets(message, length + 1, player->pipexec->stdout);
+	// @TODO: detect read errors for when AIs crash?
 	strtok(message, "\n");
 	#if DEBUG==1
 		printf("%d->postman: %s\n", player->index, message);
