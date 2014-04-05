@@ -358,8 +358,20 @@ struct character *play_get_character(struct postman *postman, char **arguments)
 void forfeit_player(struct postman *postman, struct player *target_player)
 {
 	// Tell all playing players this one is out, then mark as not playing.
-	// @TODO: Handle forfeiting a player on an invalid play (>1 card in hand).
-	tell_all(postman, "out %d %s\n", target_player->index, target_player->hand[0]->character->name);
+	if (target_player->hand[0] == NULL)
+	{
+		// If the player has no cards in hand.
+		tell_all(postman, "out %d\n", target_player->index);
+	} else {
+		if (target_player->hand[1] == NULL)
+		{
+			// If the player only has one card in hand.
+			tell_all(postman, "out %d %s\n", target_player->index, target_player->hand[0]->character->name);
+		} else {
+			// If the player has two cards in hand.
+			tell_all(postman, "out %d %s %s\n", target_player->index, target_player->hand[0]->character->name, target_player->hand[1]->character->name);
+		}
+	}
 	target_player->playing = 0;
 }
 
