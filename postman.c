@@ -576,9 +576,7 @@ void played_knight(struct postman *postman)
 
 		if (out_player != NULL)
 		{
-			out_player->playing = 0;
-
-			tell_all(postman, "out %d %s\n", out_player->index, out_player->hand[0]->character->name);
+			forfeit_player(postman, out_player);
 		}
 	} else {
 		tell_all_player_was_princessed(postman, target_player);
@@ -609,8 +607,7 @@ void played_soldier(struct postman *postman)
 		// do have the card, `out`.
 		if (target_player->hand[0]->character == target_character)
 		{
-			target_player->playing = 0;
-			tell_all(postman, "out %d %s\n", target_player->index, target_player->hand[0]->character->name);
+			forfeit_player(postman, target_player);
 		}
 	} else {
 		tell_all_player_was_princessed(postman, target_player);
