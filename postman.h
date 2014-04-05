@@ -96,7 +96,7 @@ struct player *play_get_player(struct postman *postman, char **arguments);
 
 struct character *play_get_character(struct postman *postman, char **arguments);
 
-void parse_play(struct postman *postman, char *arguments, int flags);
+int parse_play(struct postman *postman, char *arguments, int flags);
 
 void print_play(struct postman *postman);
 

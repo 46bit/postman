@@ -167,7 +167,9 @@ void play_game(struct postman *postman)
 
 			player_turn(postman);
 			player_draw(postman, postman->current_player, picked_card);
-			if (initial_cards_drawn)
+			// player_draw can disqualify players with or who get the Minister.
+			// Hence the need to recheck if playing.
+			if (initial_cards_drawn && postman->current_player->playing)
 			{
 				player_move(postman);
 			}
@@ -225,6 +227,23 @@ void player_draw(struct postman *postman, struct player *player, struct card *cu
 		}
 	}
 
+	// Check Minister hasn't disqualified player.
+	if (strcmp(current_card->character->name, "Minister") == 0)
+	{
+		int score_sum = 0;
+		for (i = 0; i < 2; i++)
+		{
+			if (player->hand[i] != NULL)
+			{
+				score_sum += player->hand[i]->character->score;
+			}
+		}
+		if (score_sum > 12)
+		{
+			forfeit_player(postman, player);
+		}
+	}
+
 	// Tell the current player what card they have drawn.
 	tell_player(player, "draw %s\n", current_card->character->name);
 }
@@ -259,15 +278,18 @@ void player_move(struct postman *postman)
 			matched = 1;
 
 			// Parse according to character's play_fieldmask.
-			parse_play(postman, ai_move_location, postman->current_move->played_character->play_fieldmask);
-
-			// @TODO: output to all players according to postman->current_move
-			print_play(postman);
-
-			// Run character callback for all those with one (all except Minister).
-			if (postman->current_move->played_character->play_handler != NULL)
+			int parse_status = parse_play(postman, ai_move_location, postman->current_move->played_character->play_fieldmask);
+			if (parse_status == 0)
 			{
-				postman->current_move->played_character->play_handler(postman);
+				// Output `played %d %s %s`-type messages to all players according to
+				// fields parsed into postman->current_move.
+				print_play(postman);
+
+				// Run character callback for all those with one (all except Minister).
+				if (postman->current_move->played_character->play_handler != NULL)
+				{
+					postman->current_move->played_character->play_handler(postman);
+				}
 			}
 		}
 	}
@@ -363,14 +385,14 @@ struct character *play_get_character(struct postman *postman, char **arguments)
 	return character;
 }
 
-void parse_play(struct postman *postman, char *arguments, int flags)
+int parse_play(struct postman *postman, char *arguments, int flags)
 {
 	if (flags & PLAY_PARSE_TARGET_PLAYER)
 	{
 		postman->current_move->target_player = play_get_player(postman, &arguments);
 		if (postman->current_move->target_player == NULL)
 		{
-			return;
+			return 1;
 		}
 	}
 	if (flags & PLAY_PARSE_TARGET_CHARACTER)
@@ -378,9 +400,10 @@ void parse_play(struct postman *postman, char *arguments, int flags)
 		postman->current_move->target_character = play_get_character(postman, &arguments);
 		if (postman->current_move->target_character == NULL)
 		{
-			return;
+			return 1;
 		}
 	}
+	return 0;
 }
 
 void print_play(struct postman *postman)
