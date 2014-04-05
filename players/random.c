@@ -99,12 +99,6 @@ int main()
 			}
 			hand[1] = NULL;
 		}
-
-		if (strcmp(play, "end_card") == 0)
-		{
-			printf("end_card %s\n", hand[0]);
-			fflush(stdout);
-		}
 	}
 
 	return 0;
