@@ -8,6 +8,8 @@
 #include <signal.h>
 #include <stdarg.h>
 
+#define DEBUG 1
+
 struct postman {
 	int characters_count;
 	struct character *characters;
@@ -72,11 +74,11 @@ void player_draw(struct postman *postman, struct player *player, struct card *cu
 
 void player_move(struct postman *postman);
 
-struct character *player_played_character(struct postman *postman, char *character_name);
+int remove_character_from_hand(struct player *player, struct character *character);
 
-struct player *player_targeted_player(struct postman *postman, char *player_index_chars);
+struct player *parse_player_from_index(struct postman *postman, char *player_index_chars);
 
-struct character *player_targeted_character(struct postman *postman, char *character_name);
+struct character *parse_character_from_name(struct postman *postman, char *character_name);
 
 struct player *play_get_player(struct postman *postman, char **arguments);
 
@@ -89,6 +91,8 @@ void tell_all_player_was_princessed(struct postman *postman, struct player *targ
 void tell_all(struct postman *postman, const char *format, ...);
 
 void tell_player(struct player *player, const char *format, ...);
+
+char *receive_player(struct player *player, int length);
 
 void played_princess(struct postman *postman, char *arguments);
 
