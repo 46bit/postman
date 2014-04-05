@@ -24,14 +24,14 @@ struct postman *postman_init(int players_count, char **programs)
 	// Setup game characters
 	postman->characters_count = 8;
 	postman->characters = malloc(postman->characters_count * sizeof(struct character));
-	postman->characters[0] = (struct character) {8, "Princess", 1, played_princess};
-	postman->characters[1] = (struct character) {7, "Minister", 1, NULL};
-	postman->characters[2] = (struct character) {6, "General", 1, played_general};
-	postman->characters[3] = (struct character) {5, "Wizard", 2, played_wizard};
-	postman->characters[4] = (struct character) {4, "Priestess", 2, played_priestess};
-	postman->characters[5] = (struct character) {3, "Knight", 2, played_knight};
-	postman->characters[6] = (struct character) {2, "Clown", 2, played_clown};
-	postman->characters[7] = (struct character) {1, "Soldier", 5, played_soldier};
+	postman->characters[0] = (struct character) {8, "Princess", 1, played_princess, 0};
+	postman->characters[1] = (struct character) {7, "Minister", 1, NULL, 0};
+	postman->characters[2] = (struct character) {6, "General", 1, played_general, PLAY_PARSE_TARGET_PLAYER};
+	postman->characters[3] = (struct character) {5, "Wizard", 2, played_wizard, PLAY_PARSE_TARGET_PLAYER};
+	postman->characters[4] = (struct character) {4, "Priestess", 2, played_priestess, PLAY_PARSE_TARGET_PLAYER};
+	postman->characters[5] = (struct character) {3, "Knight", 2, played_knight, PLAY_PARSE_TARGET_PLAYER};
+	postman->characters[6] = (struct character) {2, "Clown", 2, played_clown, PLAY_PARSE_TARGET_PLAYER};
+	postman->characters[7] = (struct character) {1, "Soldier", 5, played_soldier, PLAY_PARSE_TARGET_PLAYER | PLAY_PARSE_TARGET_CHARACTER};
 
 	// Setup game cards from characters
 	postman->cards_drawn = 0;
@@ -41,6 +41,9 @@ struct postman *postman_init(int players_count, char **programs)
 	postman->players_count = players_count;
 	postman->first_player_index = rand() % postman->players_count;
 	players_init(postman, programs);
+
+	postman->current_move = malloc(sizeof(struct move));
+	*postman->current_move = (struct move) {NULL, NULL, NULL};
 
 	return postman;
 }
@@ -159,6 +162,7 @@ void play_game(struct postman *postman)
 		if (postman->current_player->playing)
 		{
 			postman->current_player->protected = 0;
+			*postman->current_move = (struct move) {NULL, NULL, NULL};
 			postman->cards_drawn++;
 
 			player_turn(postman);
@@ -244,22 +248,26 @@ void player_move(struct postman *postman)
 	if (strcmp(ai_move, "play") == 0) {
 		// Print played move.
 		char *ai_move_location = ai_move + 5;
-		// @TODO: If a player plays an invalid character we shouldn't tell other
-		// players they played it (will cause issues with deducing cards in play).
-		tell_all(postman, "played %s\n", ai_move_location);
 
 		// Get chosen character.
 		strtok(ai_move_location, "\n ");
-		struct character *played_character = play_get_character(postman, &ai_move_location);
+		postman->current_move->played_character = play_get_character(postman, &ai_move_location);
 
 		// Check the chosen character is in the player's hand.
-		if (played_character != NULL && remove_character_from_hand(postman->current_player, played_character) == 0)
+		if (postman->current_move->played_character != NULL && remove_character_from_hand(postman->current_player, postman->current_move->played_character) == 0)
 		{
 			matched = 1;
+
+			// Parse according to character's play_fieldmask.
+			parse_play(postman, ai_move_location, postman->current_move->played_character->play_fieldmask);
+
+			// @TODO: output to all players according to postman->current_move
+			print_play(postman);
+
 			// Run character callback for all those with one (all except Minister).
-			if (played_character->play_handler != NULL)
+			if (postman->current_move->played_character->play_handler != NULL)
 			{
-				played_character->play_handler(postman, ai_move_location);
+				postman->current_move->played_character->play_handler(postman);
 			}
 		}
 	}
@@ -355,6 +363,41 @@ struct character *play_get_character(struct postman *postman, char **arguments)
 	return character;
 }
 
+void parse_play(struct postman *postman, char *arguments, int flags)
+{
+	if (flags & PLAY_PARSE_TARGET_PLAYER)
+	{
+		postman->current_move->target_player = play_get_player(postman, &arguments);
+		if (postman->current_move->target_player == NULL)
+		{
+			return;
+		}
+	}
+	if (flags & PLAY_PARSE_TARGET_CHARACTER)
+	{
+		postman->current_move->target_character = play_get_character(postman, &arguments);
+		if (postman->current_move->target_character == NULL)
+		{
+			return;
+		}
+	}
+}
+
+void print_play(struct postman *postman)
+{
+	if (postman->current_move->target_player == NULL)
+	{
+		tell_all(postman, "played %s\n", postman->current_move->played_character->name);
+		return;
+	}
+	if (postman->current_move->target_character == NULL)
+	{
+		tell_all(postman, "played %s %d\n", postman->current_move->played_character->name, postman->current_move->target_player->index);
+		return;
+	}
+	tell_all(postman, "played %s %d %s\n", postman->current_move->played_character->name, postman->current_move->target_player->index, postman->current_move->target_character->name);
+}
+
 void forfeit_player(struct postman *postman, struct player *target_player)
 {
 	// Tell all playing players this one is out, then mark as not playing.
@@ -437,15 +480,14 @@ char *receive_player(struct player *player, int length)
 	return message;
 }
 
-void played_princess(struct postman *postman, char *arguments)
+void played_princess(struct postman *postman)
 {
 	forfeit_player(postman, postman->current_player);
 }
 
-void played_general(struct postman *postman, char *arguments)
+void played_general(struct postman *postman)
 {
-	struct player *target_player = play_get_player(postman, &arguments);
-	if (target_player == NULL) return;
+	struct player *target_player = postman->current_move->target_player;
 
 	if (target_player->playing && !target_player->protected)
 	{
@@ -460,10 +502,9 @@ void played_general(struct postman *postman, char *arguments)
 	}
 }
 
-void played_wizard(struct postman *postman, char *arguments)
+void played_wizard(struct postman *postman)
 {
-	struct player *target_player = play_get_player(postman, &arguments);
-	if (target_player == NULL) return;
+	struct player *target_player = postman->current_move->target_player;
 
 	if (target_player->playing && !target_player->protected)
 	{
@@ -487,16 +528,15 @@ void played_wizard(struct postman *postman, char *arguments)
 	}
 }
 
-void played_priestess(struct postman *postman, char *arguments)
+void played_priestess(struct postman *postman)
 {
 	// We unprotect a player each time their turn comes up.
 	postman->current_player->protected = 1;
 }
 
-void played_knight(struct postman *postman, char *arguments)
+void played_knight(struct postman *postman)
 {
-	struct player *target_player = play_get_player(postman, &arguments);
-	if (target_player == NULL) return;
+	struct player *target_player = postman->current_move->target_player;
 
 	if (target_player->playing && !target_player->protected)
 	{
@@ -528,10 +568,9 @@ void played_knight(struct postman *postman, char *arguments)
 	}
 }
 
-void played_clown(struct postman *postman, char *arguments)
+void played_clown(struct postman *postman)
 {
-	struct player *target_player = play_get_player(postman, &arguments);
-	if (target_player == NULL) return;
+	struct player *target_player = postman->current_move->target_player;
 
 	if (target_player->playing && !target_player->protected)
 	{
@@ -542,12 +581,10 @@ void played_clown(struct postman *postman, char *arguments)
 	}
 }
 
-void played_soldier(struct postman *postman, char *arguments)
+void played_soldier(struct postman *postman)
 {
-	struct player *target_player = play_get_player(postman, &arguments);
-	if (target_player == NULL) return;
-	struct character *target_character = play_get_character(postman, &arguments);
-	if (target_character == NULL) return;
+	struct player *target_player = postman->current_move->target_player;
+	struct character *target_character = postman->current_move->target_character;
 
 	if (target_player->playing && !target_player->protected)
 	{

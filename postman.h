@@ -8,6 +8,9 @@
 #include <signal.h>
 #include <stdarg.h>
 
+#define PLAY_PARSE_TARGET_PLAYER 1
+#define PLAY_PARSE_TARGET_CHARACTER 2
+
 #define DEBUG 1
 
 struct postman {
@@ -22,13 +25,16 @@ struct postman {
 	int first_player_index;
 	struct player *players;
 	struct player *current_player;
+
+	struct move *current_move;
 };
 
 struct character {
 	int score;
 	char *name;
 	int cards_count;
-	void (*play_handler)(struct postman *postman, char *arguments);
+	void (*play_handler)(struct postman *postman);
+	int play_fieldmask;
 };
 
 struct card {
@@ -52,6 +58,12 @@ struct player {
 	char *name;
 	struct card **hand;
 	struct pipexec *pipexec;
+};
+
+struct move {
+	struct character *played_character;
+	struct player *target_player;
+	struct character *target_character;
 };
 
 int main(int argc, char *argv[]);
@@ -84,6 +96,10 @@ struct player *play_get_player(struct postman *postman, char **arguments);
 
 struct character *play_get_character(struct postman *postman, char **arguments);
 
+void parse_play(struct postman *postman, char *arguments, int flags);
+
+void print_play(struct postman *postman);
+
 void forfeit_player(struct postman *postman, struct player *target_player);
 
 void tell_all_player_was_princessed(struct postman *postman, struct player *target_player);
@@ -94,19 +110,19 @@ void tell_player(struct player *player, const char *format, ...);
 
 char *receive_player(struct player *player, int length);
 
-void played_princess(struct postman *postman, char *arguments);
+void played_princess(struct postman *postman);
 
-void played_general(struct postman *postman, char *arguments);
+void played_general(struct postman *postman);
 
-void played_wizard(struct postman *postman, char *arguments);
+void played_wizard(struct postman *postman);
 
-void played_priestess(struct postman *postman, char *arguments);
+void played_priestess(struct postman *postman);
 
-void played_knight(struct postman *postman, char *arguments);
+void played_knight(struct postman *postman);
 
-void played_clown(struct postman *postman, char *arguments);
+void played_clown(struct postman *postman);
 
-void played_soldier(struct postman *postman, char *arguments);
+void played_soldier(struct postman *postman);
 
 void score_game(struct postman *postman);
 
