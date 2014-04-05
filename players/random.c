@@ -24,7 +24,7 @@ int main()
 		{1, "Soldier", 5}
 	};
 
-	int player_id, first_player_id, players_count = 4;
+	int idented = 0, player_id, first_player_id, players_count = 4;
 
 	struct timeval time;
 	gettimeofday(&time, NULL);
@@ -32,7 +32,7 @@ int main()
 	srand(microsec);
 
 	char play[31];
-	int has_been_drawn = 0;
+	int has_been_drawn = 0, discarding = 0;
 	char *hand[2];
 
 	while (fgets(play, 31, stdin))
@@ -50,7 +50,11 @@ int main()
 
 			printf("Hello World\n");
 			fflush(stdout);
+
+			idented = 1;
 		}
+
+		if (!idented) continue;
 
 		if (strcmp(play, "draw") == 0 || strcmp(play, "swap") == 0)
 		{
@@ -70,7 +74,7 @@ int main()
 			hand[1] = item;
 			int which = rand() % 2;
 
-			if (strcmp(play, "draw") == 0) {
+			if (!discarding && strcmp(play, "draw") == 0) {
 				char *character_name = hand[which];
 				if (strcmp(character_name, "Princess") == 0
 					|| strcmp(character_name, "Minister") == 0
@@ -98,6 +102,17 @@ int main()
 				free(hand[1]);
 			}
 			hand[1] = NULL;
+			discarding = 0;
+		}
+
+		if (strcmp(play, "discard") == 0)
+		{
+			strtok(play+8, "\n ");
+			int discard_player_id = *(play+8) - '0';
+			if (player_id == discard_player_id)
+			{
+				discarding = 1;
+			}
 		}
 	}
 

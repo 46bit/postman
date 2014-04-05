@@ -28,7 +28,7 @@ struct postman *postman_init(int players_count, char **programs)
 	postman->characters[1] = (struct character) {7, "Minister", 1, NULL, 0};
 	postman->characters[2] = (struct character) {6, "General", 1, played_general, PLAY_PARSE_TARGET_PLAYER};
 	postman->characters[3] = (struct character) {5, "Wizard", 2, played_wizard, PLAY_PARSE_TARGET_PLAYER};
-	postman->characters[4] = (struct character) {4, "Priestess", 2, played_priestess, PLAY_PARSE_TARGET_PLAYER};
+	postman->characters[4] = (struct character) {4, "Priestess", 2, played_priestess, 0};
 	postman->characters[5] = (struct character) {3, "Knight", 2, played_knight, PLAY_PARSE_TARGET_PLAYER};
 	postman->characters[6] = (struct character) {2, "Clown", 2, played_clown, PLAY_PARSE_TARGET_PLAYER};
 	postman->characters[7] = (struct character) {1, "Soldier", 5, played_soldier, PLAY_PARSE_TARGET_PLAYER | PLAY_PARSE_TARGET_CHARACTER};

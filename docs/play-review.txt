@@ -1,0 +1,75 @@
+fortysix@46mbp:postman ∴ ./bin/postman ./bin/players/random ./bin/players/random ./bin/players/random ./bin/players/random
+postman->0: ident 0 0 4
+0->postman: Hello World
+postman->1: ident 1 0 4
+1->postman: Hello World
+postman->2: ident 2 0 4
+2->postman: Hello World
+postman->3: ident 3 0 4
+3->postman: Hello World
+postman->all: begin
+postman->all: player 0
+postman->0: draw Clown		[0, "Clown", NULL]
+postman->all: player 1
+postman->1: draw Knight		[1, "Knight", NULL]
+postman->all: player 2
+postman->2: draw Soldier	[2, "Soldier", NULL]
+postman->all: player 3
+postman->3: draw Knight		[3, "Knight", NULL]
+postman->all: begin
+postman->all: player 0
+postman->0: draw Soldier	[0, "Clown", "Soldier"]
+0->postman: play Soldier 0 Clown		[0, "Clown", NULL]
+postman->all: played Soldier 0 Clown
+postman->all: out 0 Clown				==>  Random Player just knocked itself out
+										==>  And it no longer had the Clown!
+postman->all: player 1
+postman->1: draw Soldier	[1, "Knight", "Soldier"]
+1->postman: play Soldier 2 Minister		[1, "Knight", NULL]
+postman->all: played Soldier 2 Minister
+postman->all: player 2
+postman->2: draw Wizard		[2, "Soldier", "Wizard"]
+2->postman: play Wizard 2	[2, "Soldier", NULL]
+postman->all: played Wizard 2
+postman->all: discard 2 Soldier			==> Random Player just made itself discard
+postman->2: draw Soldier	[2, "Soldier", "Soldier"]
+postman->all: player 3
+postman->3: draw Priestess	[3, "Knight", "Priestess"]
+3->postman: play Knight 0	[3, "Priestess", NULL]
+postman->all: played Knight 0
+postman->all: protected 0			==> Random Player played Knight on a Priestess
+postman->all: player 1
+postman->1: draw Soldier	[1, "Knight", "Soldier"]
+1->postman: play Soldier 3 Soldier	[1, "Knight", NULL]
+postman->all: played Soldier 3 Soldier
+postman->all: player 2
+postman->2: draw Princess	[2, "Soldier", "Princess"]
+2->postman: play Soldier 2 Minister 		[2, "Princess", NULL]
+postman->all: played Soldier 2 Minister
+postman->all: player 3
+postman->3: draw Minister	[3, "Priestess", "Minister"]
+3->postman: play Priestess	[3, "Minister", NULL]
+Player Hello World specified an invalid player.		==> No it didn't.
+postman->all: out 3 Minister	==> Hence expels valid player.
+postman->all: player 1
+postman->1: draw General	[1, "Knight", "General"]
+1->postman: play General 2	[1, "Knight", NULL]
+postman->all: played General 2
+postman->1: swap Soldier	[1, "Soldier", NULL]
+postman->2: swap Knight		[2, "Knight", NULL]
+postman->all: player 2
+postman->2: draw Clown		[2, "Knight", "Clown"]
+2->postman: play Knight 0	[2, "Clown", NULL]
+postman->all: played Knight 0
+postman->all: protected 0	==> Player 0 is out.
+postman->all: player 1
+postman->1: draw Wizard		[1, "Knight", "Wizard"]
+1->postman: play Wizard 0	[1, "Knight", NULL]
+postman->all: played Wizard 0
+postman->all: protected 0	==> Player 0 is out.
+postman->all: player 2
+postman->2: draw Priestess	[2, "Clown", "Priestess"]
+2->postman: play Clown 1	[2, "Priestess", NULL]
+postman->all: played Clown 1
+postman->2: reveal Soldier	==> I don't see a Soldier in player 1's hand? Nor player 2
+Player 2 Hello World won with a Priestess card.
