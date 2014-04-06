@@ -299,19 +299,17 @@ int remove_character_from_hand(struct player *player, struct character *characte
 {
 	struct card **hand = player->hand;
 
-	int i;
-	for (i = 0; i < 2; i++)
+	if (hand[0] != NULL && hand[0]->character == character)
 	{
-		if (hand[i] != NULL && hand[i]->character == character)
-		{
-			hand[i] = NULL;
-			if (i == 0)
-			{
-				hand[i] = hand[i + 1];
-				hand[i + 1] = NULL;
-			}
-			return 0;
-		}
+		hand[0] = hand[1];
+		hand[1] = NULL;
+		return 0;
+	}
+
+	if (hand[1] != NULL && hand[1]->character == character)
+	{
+		hand[1] = NULL;
+		return 0;
 	}
 
 	return 1;
@@ -441,6 +439,14 @@ void tell_all_player_was_princessed(struct postman *postman, struct player *targ
 
 void tell_all(struct postman *postman, const char *format, ...)
 {
+	/*if (postman->current_player != NULL)
+	{
+		printf("[%d, ", postman->current_player->index);
+		if (postman->current_player->hand[0] != NULL) printf("%s, ", postman->current_player->hand[0]->character->name);
+		if (postman->current_player->hand[1] != NULL) printf("%s", postman->current_player->hand[1]->character->name);
+		printf("]\n");
+	}*/
+
 	#if DEBUG==1
 		va_list arg1;
 		va_start(arg1, format);
@@ -468,6 +474,11 @@ void tell_all(struct postman *postman, const char *format, ...)
 
 void tell_player(struct player *player, const char *format, ...)
 {
+	/*printf("[%d, ", player->index);
+	if (player->hand[0] != NULL) printf("%s, ", player->hand[0]->character->name);
+	if (player->hand[1] != NULL) printf("%s", player->hand[1]->character->name);
+	printf("]\n");*/
+
 	#if DEBUG==1
 		va_list arg1;
 		va_start(arg1, format);
@@ -486,6 +497,11 @@ void tell_player(struct player *player, const char *format, ...)
 
 char *receive_player(struct player *player, int length)
 {
+	/*printf("[%d, ", player->index);
+	if (player->hand[0] != NULL) printf("%s, ", player->hand[0]->character->name);
+	if (player->hand[1] != NULL) printf("%s", player->hand[1]->character->name);
+	printf("]\n");*/
+
 	char *message = malloc(length + 1);
 	fgets(message, length + 1, player->pipexec->stdout);
 	// @TODO: detect read errors for when AIs crash?
@@ -528,6 +544,7 @@ void played_wizard(struct postman *postman)
 		// The target player must discard their hand and draw a new card.
 		// Run `discard` for the card in their hand, revealing it to all.
 		tell_all(postman, "discard %d %s\n", target_player->index, target_player->hand[0]->character->name);
+		target_player->hand[0] = target_player->hand[1] = NULL;
 
 		// Draw a new card for the target player.
 		struct card *replacement_card = choose_card(postman);
