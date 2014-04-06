@@ -446,14 +446,22 @@ void tell_all_player_was_princessed(struct postman *postman, struct player *targ
 	tell_all(postman, "protected %d\n", target_player->index);
 }
 
+void tell(FILE *target_pipe, char *message)
+{
+	fprintf(target_pipe, "%s", message);
+	fflush(target_pipe);
+}
+
 void tell_all(struct postman *postman, const char *format, ...)
 {
+	char message[100];
+	va_list arg;
+	va_start(arg, format);
+	vsnprintf(message, 100, format, arg);
+	va_end(arg);
+
 	#if DEBUG==1
-		va_list arg1;
-		va_start(arg1, format);
-		printf("postman->all: ");
-		vfprintf(stdout, format, arg1);
-		va_end(arg1);
+		printf("postman->all: %s", message);
 		fflush(stdout);
 	#endif
 
@@ -462,33 +470,25 @@ void tell_all(struct postman *postman, const char *format, ...)
 	{
 		if (postman->players[p].playing)
 		{
-			va_list arg;
-			// Setting up variadic args for each player is wasteful, but the other
-			// methods generally cause fflush to sigfault on Mac.
-			va_start(arg, format);
-			vfprintf(postman->players[p].pipexec->stdin, format, arg);
-			va_end(arg);
-			fflush(postman->players[p].pipexec->stdin);
+			tell(postman->players[p].pipexec->stdin, message);
 		}
 	}
 }
 
 void tell_player(struct player *player, const char *format, ...)
 {
+	char message[100];
+	va_list arg;
+	va_start(arg, format);
+	vsnprintf(message, 100, format, arg);
+	va_end(arg);
+
 	#if DEBUG==1
-		va_list arg1;
-		va_start(arg1, format);
-		printf("postman->%d: ", player->index);
-		vfprintf(stdout, format, arg1);
-		va_end(arg1);
+		printf("postman->%d: %s", player->index, message);
 		fflush(stdout);
 	#endif
 
-	va_list arg;
-	va_start(arg, format);
-	vfprintf(player->pipexec->stdin, format, arg);
-	va_end(arg);
-	fflush(player->pipexec->stdin);
+	tell(player->pipexec->stdin, message);
 }
 
 char *receive_player(struct player *player, int length)

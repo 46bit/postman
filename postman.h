@@ -104,6 +104,8 @@ void forfeit_player(struct postman *postman, struct player *target_player);
 
 void tell_all_player_was_princessed(struct postman *postman, struct player *target_player);
 
+void tell(FILE *target_pipe, char *message);
+
 void tell_all(struct postman *postman, const char *format, ...);
 
 void tell_player(struct player *player, const char *format, ...);
