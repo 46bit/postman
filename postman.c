@@ -439,14 +439,6 @@ void tell_all_player_was_princessed(struct postman *postman, struct player *targ
 
 void tell_all(struct postman *postman, const char *format, ...)
 {
-	/*if (postman->current_player != NULL)
-	{
-		printf("[%d, ", postman->current_player->index);
-		if (postman->current_player->hand[0] != NULL) printf("%s, ", postman->current_player->hand[0]->character->name);
-		if (postman->current_player->hand[1] != NULL) printf("%s", postman->current_player->hand[1]->character->name);
-		printf("]\n");
-	}*/
-
 	#if DEBUG==1
 		va_list arg1;
 		va_start(arg1, format);
@@ -474,11 +466,6 @@ void tell_all(struct postman *postman, const char *format, ...)
 
 void tell_player(struct player *player, const char *format, ...)
 {
-	/*printf("[%d, ", player->index);
-	if (player->hand[0] != NULL) printf("%s, ", player->hand[0]->character->name);
-	if (player->hand[1] != NULL) printf("%s", player->hand[1]->character->name);
-	printf("]\n");*/
-
 	#if DEBUG==1
 		va_list arg1;
 		va_start(arg1, format);
@@ -497,11 +484,6 @@ void tell_player(struct player *player, const char *format, ...)
 
 char *receive_player(struct player *player, int length)
 {
-	/*printf("[%d, ", player->index);
-	if (player->hand[0] != NULL) printf("%s, ", player->hand[0]->character->name);
-	if (player->hand[1] != NULL) printf("%s", player->hand[1]->character->name);
-	printf("]\n");*/
-
 	char *message = malloc(length + 1);
 	fgets(message, length + 1, player->pipexec->stdout);
 	// @TODO: detect read errors for when AIs crash?
