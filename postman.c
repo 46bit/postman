@@ -608,7 +608,7 @@ void played_clown(struct postman *postman)
 	if (target_player->playing && !target_player->protected)
 	{
 		// Reveal card in target_player hand to current_player only.
-		tell_player(postman->current_player, "reveal %s\n", target_player->hand[0]->character->name);
+		tell_player(postman->current_player, "reveal %d %s\n", target_player->index, target_player->hand[0]->character->name);
 	}
 	else
 	{
