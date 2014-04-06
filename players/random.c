@@ -51,6 +51,8 @@ int main()
 			printf("Hello World\n");
 			fflush(stdout);
 
+			fprintf(stderr, "Random Player %d seed is %lo\n", player_id, microsec);
+
 			idented = 1;
 		}
 

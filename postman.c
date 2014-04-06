@@ -7,6 +7,9 @@ int main(int argc, char *argv[])
 	gettimeofday(&time, NULL);
 	long microsec = ((unsigned long long)time.tv_sec * 1000000) + time.tv_usec;
 	srand(microsec);
+	#if DEBUG==1
+		fprintf(stderr, "Postman seed is %lo\n", microsec);
+	#endif
 
 	// Setup Postman state
 	struct postman *postman = postman_init(argc - 1, argv + 1);
@@ -260,7 +263,7 @@ void player_move(struct postman *postman)
 
 	// Parse out play action if chosen.
 	if (strcmp(ai_move, "play") == 0) {
-		// Print played move.
+		// Get location in string after play token and null byte.
 		char *ai_move_location = ai_move + 5;
 
 		// Get chosen character.
@@ -401,15 +404,15 @@ void print_play(struct postman *postman)
 {
 	if (postman->current_move->target_player == NULL)
 	{
-		tell_all(postman, "played %s\n", postman->current_move->played_character->name);
+		tell_all(postman, "played %d %s\n", postman->current_player->index, postman->current_move->played_character->name);
 		return;
 	}
 	if (postman->current_move->target_character == NULL)
 	{
-		tell_all(postman, "played %s %d\n", postman->current_move->played_character->name, postman->current_move->target_player->index);
+		tell_all(postman, "played %d %s %d\n", postman->current_player->index, postman->current_move->played_character->name, postman->current_move->target_player->index);
 		return;
 	}
-	tell_all(postman, "played %s %d %s\n", postman->current_move->played_character->name, postman->current_move->target_player->index, postman->current_move->target_character->name);
+	tell_all(postman, "played %d %s %d %s\n", postman->current_player->index, postman->current_move->played_character->name, postman->current_move->target_player->index, postman->current_move->target_character->name);
 }
 
 void forfeit_player(struct postman *postman, struct player *target_player)
@@ -621,11 +624,14 @@ void score_game(struct postman *postman)
 	for (i = 0; i < postman->players_count; i++)
 	{
 		postman->current_player = &postman->players[i];
-		int current_score = postman->current_player->hand[0]->character->score;
-		if (postman->current_player->playing && current_score > top_score)
+		if (postman->current_player->playing)
 		{
-			top_score = current_score;
-			top_card = postman->current_player->hand[0];
+			int current_score = postman->current_player->hand[0]->character->score;
+			if (current_score > top_score)
+			{
+				top_score = current_score;
+				top_card = postman->current_player->hand[0];
+			}
 		}
 	}
 	printf("Player %d %s won with a %s card.\n", top_card->player->index, top_card->player->name, top_card->character->name);
@@ -649,6 +655,7 @@ void cleanup_game(struct postman *postman)
 	}
 	free(postman->players);
 
+	free(postman->current_move);
 	free(postman->characters);
 	free(postman->cards);
 	free(postman);

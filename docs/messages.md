@@ -12,7 +12,7 @@
 * `begin` tells you the initial hands have been dealt and play is commencing
 * `player %d` tells you the turn of player %d is commencing
 * `draw %s` tells you that you just drew %s character card
-* `played %s (%d (%s))` tells you the character the current player played, possibly the target player and then possibly the target character
+* `played %d %s (%d (%s))` tells you the player ID, the character the player played, possibly the target player and then possibly the target character
 * `protected %d` tells you the player %d cannot be acted upon because they have played a Priestess
 * `swap %s` tells you to swap your card for character %s (*ACTION REQUIRED*)
 * `discard %d %s` tells you player %d just discarded card character %s (*ACTION REQUIRED*)
