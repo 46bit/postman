@@ -356,7 +356,9 @@ struct player *play_get_player(struct postman *postman, char **arguments)
 			printf("Player %s specified an invalid player.\n", postman->current_player->name);
 		#endif
 		forfeit_player(postman, postman->current_player);
-	} else {
+	}
+	else
+	{
 		*arguments += 2;
 	}
 	return player;
@@ -373,7 +375,9 @@ struct character *play_get_character(struct postman *postman, char **arguments)
 			printf("Player %s specified an invalid character.\n", postman->current_player->name);
 		#endif
 		forfeit_player(postman, postman->current_player);
-	} else {
+	}
+	else
+	{
 		*arguments += strlen(character->name) + 1;
 	}
 	return character;
@@ -422,12 +426,16 @@ void forfeit_player(struct postman *postman, struct player *target_player)
 	{
 		// If the player has no cards in hand.
 		tell_all(postman, "out %d\n", target_player->index);
-	} else {
+	}
+	else
+	{
 		if (target_player->hand[1] == NULL)
 		{
 			// If the player only has one card in hand.
 			tell_all(postman, "out %d %s\n", target_player->index, target_player->hand[0]->character->name);
-		} else {
+		}
+		else
+		{
 			// If the player has two cards in hand.
 			tell_all(postman, "out %d %s %s\n", target_player->index, target_player->hand[0]->character->name, target_player->hand[1]->character->name);
 		}
@@ -515,7 +523,9 @@ void played_general(struct postman *postman)
 		struct card *temp_card = postman->current_player->hand[0];
 		postman->current_player->hand[0] = target_player->hand[0];
 		target_player->hand[0] = temp_card;
-	} else {
+	}
+	else
+	{
 		tell_all_player_was_princessed(postman, target_player);
 	}
 }
@@ -538,11 +548,15 @@ void played_wizard(struct postman *postman)
 			// If the player is forced to discard when no cards remain, they're out.
 			// Can happen when one player has had final turn and others have not.
 			forfeit_player(postman, target_player);
-		} else {
+		}
+		else
+		{
 			postman->cards_drawn++;
 			player_draw(postman, target_player, replacement_card);
 		}
-	} else {
+	}
+	else
+	{
 		tell_all_player_was_princessed(postman, target_player);
 	}
 }
@@ -572,7 +586,9 @@ void played_knight(struct postman *postman)
 		if (current_score < target_score)
 		{
 			out_player = postman->current_player;
-		} else if (target_score < current_score) {
+		}
+		else if (target_score < current_score)
+		{
 			out_player = target_player;
 		}
 
@@ -580,7 +596,9 @@ void played_knight(struct postman *postman)
 		{
 			forfeit_player(postman, out_player);
 		}
-	} else {
+	}
+	else
+	{
 		tell_all_player_was_princessed(postman, target_player);
 	}
 }
@@ -593,7 +611,9 @@ void played_clown(struct postman *postman)
 	{
 		// Reveal card in target_player hand to current_player only.
 		tell_player(postman->current_player, "reveal %s\n", target_player->hand[0]->character->name);
-	} else {
+	}
+	else
+	{
 		tell_all_player_was_princessed(postman, target_player);
 	}
 }
@@ -611,7 +631,9 @@ void played_soldier(struct postman *postman)
 		{
 			forfeit_player(postman, target_player);
 		}
-	} else {
+	}
+	else
+	{
 		tell_all_player_was_princessed(postman, target_player);
 	}
 }
