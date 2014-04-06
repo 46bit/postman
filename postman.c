@@ -140,8 +140,6 @@ void play_game(struct postman *postman)
 	struct card *picked_card;
 	int current_player_index = postman->first_player_index, initial_cards_drawn = 0;
 
-	tell_all(postman, "begin\n");
-
 	while ((picked_card = choose_card(postman)) != NULL)
 	{
 		// Check we have at least 2 players not out. End game if appropriate.
