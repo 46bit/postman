@@ -166,7 +166,12 @@ void play_game(struct postman *postman)
 			*postman->current_move = (struct move) {NULL, NULL, NULL};
 			postman->cards_drawn++;
 
-			player_turn(postman);
+			// For initial drawing we're not going to issue `player %d` messages.
+			// We'll just send the `draw %s` messages and leave it at that.
+			if (initial_cards_drawn)
+			{
+				player_turn(postman);
+			}
 			player_draw(postman, postman->current_player, picked_card);
 			// player_draw can disqualify players with or who get the Minister.
 			// Hence the need to recheck if playing.
