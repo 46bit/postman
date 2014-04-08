@@ -83,6 +83,14 @@ sent to all AIs when a round ends.
 
 ### Messages
 
+Messages that the manager sends an AI before the game begins:
+
+ - `ident <n>` - your player ID is `n`. Integer from 0 to `count(players)-1`. Print your player's name to stdout upon receipt of this message.
+
+ - `players <n>` - the number of players `n` in the game.
+
+ - `start <n>` - the ID of the starting player.
+
 Messages that the manager may send an AI:
 
  - `player <n>` - it is the turn of player `n`.
