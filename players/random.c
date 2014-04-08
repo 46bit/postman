@@ -43,16 +43,25 @@ int main()
 		{
 			strtok(play+6, "\n ");
 			player_id = *(play+6) - '0';
-			strtok(play+8, "\n ");
-			first_player_id = *(play+8) - '0';
-			strtok(play+10, "\n ");
-			players_count = *(play+10) - '0';
-
-			printf("Hello World\n");
-			fflush(stdout);
+			fprintf(stderr, "ident %d\n", player_id);
 
 			fprintf(stderr, "Random Player %d seed is %lo\n", player_id, microsec);
+			printf("Hello World\n");
+			fflush(stdout);
+		}
 
+		if (strcmp(play, "players") == 0)
+		{
+			strtok(play+8, "\n ");
+			players_count = *(play+8) - '0';
+			fprintf(stderr, "players %d\n", players_count);
+		}
+
+		if (strcmp(play, "start") == 0)
+		{
+			strtok(play+6, "\n ");
+			first_player_id = *(play+6) - '0';
+			fprintf(stderr, "start %d\n", first_player_id);
 			idented = 1;
 		}
 

@@ -102,8 +102,19 @@ void players_init(struct postman *postman, char **programs)
 
 		// Tell player its player ID, the ID of the player to go first, and how many
 		// players are in this game. `ident` message prompts for reply of player name.
-		tell_player(current_player, "ident %d %d %d\n", i, postman->first_player_index, postman->players_count);
 
+		// Tell player their player ID (ident %d), the number of players and the
+		// starting player ID.
+		tell_player(current_player, "ident %d\n", i);
+	}
+
+	// Tell players how many players there are and the starting player ID.
+	tell_all(postman, "players %d\n", postman->players_count);
+	tell_all(postman, "start %d\n", postman->first_player_index);
+
+	for (i = 0; i < postman->players_count; i++)
+	{
+		struct player *current_player = &postman->players[i];
 		// Get name of player as it output on stdout.
 		current_player->name = receive_player(current_player, 30);
 	}
