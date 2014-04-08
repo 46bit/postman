@@ -186,7 +186,6 @@ void play_game(struct postman *postman)
 		current_player_index = (current_player_index + 1) % postman->players_count;
 		if (postman->cards_drawn == postman->players_count) {
 			initial_cards_drawn = 1;
-			tell_all(postman, "begin\n");
 		}
 	}
 }
