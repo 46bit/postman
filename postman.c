@@ -75,6 +75,7 @@ void character_cards_init(struct postman *postman)
 		for (character_card_index = 0; character_card_index < current_character->cards_count; character_card_index++)
 		{
 			struct card *current_card = &postman->cards[card_index];
+			current_card->drawn = 0;
 			current_card->character = current_character;
 			current_card->player = NULL;
 			card_index++;
@@ -151,6 +152,14 @@ void play_game(struct postman *postman)
 	struct card *picked_card;
 	int current_player_index = postman->first_player_index, initial_cards_drawn = 0;
 
+	// Discard one card.
+	picked_card = choose_card(postman);
+	picked_card->drawn = 1;
+	postman->cards_drawn++;
+	#if DEBUG==1
+		fprintf(stderr, "Discarded a %s card.\n", picked_card->character->name);
+	#endif
+
 	while ((picked_card = choose_card(postman)) != NULL)
 	{
 		// Check we have at least 2 players not out. End game if appropriate.
@@ -195,7 +204,7 @@ void play_game(struct postman *postman)
 		// This can be done in one line except detection of when initial cards
 		// have been distributed to all players is easiest here.
 		current_player_index = (current_player_index + 1) % postman->players_count;
-		if (postman->cards_drawn == postman->players_count) {
+		if (postman->cards_drawn - 1 == postman->players_count) {
 			initial_cards_drawn = 1;
 		}
 	}
@@ -212,7 +221,7 @@ struct card *choose_card(struct postman *postman)
 		{
 			int chosen_card_index = rand() % postman->cards_count;
 			chosen_card = &postman->cards[chosen_card_index];
-			if (chosen_card->player == NULL)
+			if (!chosen_card->drawn)
 			{
 				break;
 			}

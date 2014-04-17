@@ -38,6 +38,7 @@ struct character {
 };
 
 struct card {
+	int drawn;
 	struct character *character;
 	struct player *player;
 };
