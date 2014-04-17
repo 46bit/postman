@@ -127,6 +127,6 @@ void played_clown(struct postman *postman);
 
 void played_soldier(struct postman *postman);
 
-void score_game(struct postman *postman);
+struct player *score_game(struct postman *postman);
 
 void cleanup_game(struct postman *postman);

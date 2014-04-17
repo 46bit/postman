@@ -12,10 +12,31 @@ int main(int argc, char *argv[])
 	#endif
 
 	// Setup Postman state
-	struct postman *postman = postman_init(argc - 1, argv + 1);
-	play_game(postman);
-	score_game(postman);
-	cleanup_game(postman);
+	int players_count, winning_player_index, *scores;
+	struct player *winning_player;
+
+	players_count = argc - 1;
+	scores = calloc(players_count, sizeof(int));
+	winning_player_index = 0;
+
+	while (scores[winning_player_index] < 4)
+	{
+		struct postman *postman = postman_init(players_count, argv + 1);
+		play_game(postman);
+
+		winning_player = score_game(postman);
+		winning_player_index = winning_player->index;
+		scores[winning_player_index]++;
+		printf("won_round %d %s %d\n", winning_player_index, winning_player->name, scores[winning_player_index]);
+		if (scores[winning_player_index] == 4)
+		{
+			printf("won_game %d %s %d\n", winning_player->index, winning_player->name, scores[winning_player_index]);
+		}
+
+		cleanup_game(postman);
+	}
+
+	free(scores);
 
 	return 0;
 }
@@ -660,7 +681,7 @@ void played_soldier(struct postman *postman)
 	}
 }
 
-void score_game(struct postman *postman)
+struct player *score_game(struct postman *postman)
 {
 	// Once cards run out determine the winning player.
 	int i, top_score = 0;
@@ -679,6 +700,7 @@ void score_game(struct postman *postman)
 		}
 	}
 	printf("Player %d %s won with a %s card.\n", top_card->player->index, top_card->player->name, top_card->character->name);
+	return top_card->player;
 }
 
 void cleanup_game(struct postman *postman)
